@@ -43,6 +43,20 @@
     --transition-slow: 0.5s ease;
 }
 
+.wallet-option.mobile-only {
+    display: none;
+}
+
+.wallet-option.mobile-only img {
+    border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+    .wallet-option.mobile-only {
+        display: flex !important;
+    }
+}
+
 * {
     margin: 0;
     padding: 0;
