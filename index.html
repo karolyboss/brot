@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainRot ($ROT) - The Ultimate Meme Revolution</title>
+    <meta property="og:title" content="BrainRot Presale">
+    <meta property="og:description" content="Join the BrainRot presale and secure your $ROT tokens now!">
+    <meta property="og:image" content="assets/rot-share.jpg">
+    <meta property="og:url" content="https://brainrot.ai">
+    <link rel="icon" type="image/png" href="assets/rot-icon.png">
+    <link rel="apple-touch-icon" href="assets/rot-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="description" content="Join the BrainRot presale! 7.7B tokens, 33% available in presale with amazing bonuses. Connect your Phantom wallet and buy $ROT with one click.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-phantom@0.9.24/dist/index.umd.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="assets/rot-icon.png" alt="BrainRot Logo" class="logo-img">
+                <span class="logo-text">$ROT</span>
+            </div>
+            <div class="nav-links">
+                <span id="user-balance-nav" class="nav-balance" style="display: none;">0 $ROT</span>
+                <a href="#presale" class="nav-link">Presale</a>
+                <a href="#tokenomics" class="nav-link">Tokenomics</a>
+                <a href="#roadmap" class="nav-link">Roadmap</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <div class="social-links">
+                    <a href="https://t.me/rottedbrains" target="_blank" class="social-btn telegram-btn" title="Telegram">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                        </svg>
+                    </a>
+                    <a href="https://x.com/kiralykaro61319?s=21" target="_blank" class="social-btn twitter-btn" title="Twitter">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                </div>
+                <button id="connect-wallet" class="wallet-btn">Connect Wallet</button>
+                <div id="user-info" class="user-info" style="display: none;">
+                    <span id="user-address" class="user-address">Wallet Address</span>
+                    <button id="admin-panel-btn" class="admin-btn" style="display: none;">Admin</button>
+                </div>
+            </div>
+            <div class="mobile-menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title"><span class="hero-brand">BrainRot</span> <span class="gradient-text">$ROT</span></h1>
+                <p class="hero-subtitle">The meme coin that actually makes you smarter... or at least richer</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="total-raised">0</div>
+                        <div class="stat-label">SOL Raised</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="participants">0</div>
+                        <div class="stat-label">Participants</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="current-phase">PHASE 1</div>
+                        <div class="stat-label">Current Phase</div>
+                    </div>
+                </div>
+                <div class="hero-cta">
+                    <button id="buy-rot-btn" class="cta-button" disabled>Buy $ROT</button>
+                    <p class="cta-subtitle">Min: 0.1 SOL • Max: 10 SOL per transaction</p>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="presale-progress">
+                    <div class="progress-header">
+                        <h3>Presale Progress</h3>
+                        <div class="phase-indicator">
+                            <span class="phase-dot active" data-phase="1"></span>
+                            <span class="phase-dot" data-phase="2"></span>
+                            <span class="phase-dot" data-phase="3"></span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="tokens-sold">0</span> / <span id="total-tokens">2,566,666,666</span> ROT
+                    </div>
+                </div>
+            </div>
+            <div class="airdrop-section">
+                <button id="claim-airdrop-btn" class="airdrop-btn">🎁 Claim Referral Airdrop</button>
+                <p class="airdrop-subtitle">Earn $ROT based on successful referrals</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose ROT Section -->
+    <section class="why-rot">
+        <div class="container">
+            <h2 class="section-title">Why Choose $ROT?</h2>
+            <p class="section-subtitle">The most advanced memecoin with real utility and unstoppable brainrot energy</p>
+
+            <div class="why-rot-grid">
+                <div class="why-card">
+                    <div class="card-icon" data-color="green">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M32 6l19 9v16c0 12-7.8 23-19 27-11.2-4-19-15-19-27V15l19-9z" />
+                            <path d="M24 32l6 6 10-12" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <h3>100% Secure</h3>
+                    <p>95% liquidity locked, 0% buy/sell tax, verified smart contract, and audited by top security firms.</p>
+                </div>
+
+                <div class="why-card">
+                    <div class="card-icon" data-color="amber">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M20 44l4-20L44 12l-4 20-20 12z" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M24 24l16 16" stroke-linecap="round" />
+                            <circle cx="48" cy="16" r="6" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <h3>Explosive Growth</h3>
+                    <p>Early access pricing with 50% bonus tokens before CEX listings and viral marketing blitzes.</p>
+                </div>
+
+                <div class="why-card">
+                    <div class="card-icon" data-color="lime">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M20 20c0-8 6-14 12-14s12 6 12 14c0 8-6 14-12 14s-12 6-12 14h24" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M32 26v4" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <h3>Pure Brainrot</h3>
+                    <p>Maximum brainrot energy with memes, community rewards, brainrot events, and meme-fueled missions.</p>
+                </div>
+
+                <div class="why-card">
+                    <div class="card-icon" data-color="purple">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 28c0-11 9-20 20-20s20 9 20 20-9 20-20 20h-2l-8 8v-8c-6-3-10-9-10-20z" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M24 24h16" stroke-linecap="round" />
+                            <path d="M24 32h10" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <h3>Strong Community</h3>
+                    <p>Join thousands of holders in our Telegram raid squads, Discord alpha rooms, and social media raids.</p>
+                </div>
+
+                <div class="why-card">
+                    <div class="card-icon" data-color="cyan">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M18 32l10-18 10 10 14-6-10 32-12-12-12 6z" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M8 56l12-6" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <h3>Instant Delivery</h3>
+                    <p>Tokens delivered immediately after confirmation with zero delays, hassles, or manual claims.</p>
+                </div>
+
+                <div class="why-card">
+                    <div class="card-icon" data-color="red">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 48l16-20 10 12 14-20" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M40 20h12v12" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <h3>Massive Potential</h3>
+                    <p>Exclusive bonuses, airdrops, and early access to future products for the most devoted brainrot believers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Current Phase Details -->
+    <section class="phase-details">
+        <div class="container">
+            <div class="phase-card">
+                <div class="phase-header">
+                    <h2 id="phase-title">Phase 1: Maximum Gains</h2>
+                    <div class="phase-indicator-dots">
+                        <span class="phase-dot active"></span>
+                        <span class="phase-dot"></span>
+                        <span class="phase-dot"></span>
+                    </div>
+                    <div class="phase-badge">50% BONUS</div>
+                </div>
+                <div class="phase-stats">
+                    <div class="phase-stat">
+                        <span class="stat-label">Rate:</span>
+                        <span class="stat-value" id="current-rate">1,000,000 ROT = 1 SOL</span>
+                    </div>
+                    <div class="phase-stat">
+                        <span class="stat-label">Bonus Tokens:</span>
+                        <span class="stat-value" id="bonus-amount">500,000 ROT per SOL</span>
+                    </div>
+                    <div class="phase-stat">
+                        <span class="stat-label">Progress:</span>
+                        <span class="stat-value" id="phase-progress">0%</span>
+                    </div>
+                </div>
+                <div class="countdown-timer">
+                    <h4>Next Phase In:</h4>
+                    <div class="timer" id="phase-timer">00:00:00</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tokenomics Section -->
+    <section id="tokenomics" class="tokenomics">
+        <div class="container">
+            <h2 class="section-title">Tokenomics</h2>
+            <div class="tokenomics-layout">
+                <div class="tokenomics-chart">
+                    <div class="chart-wrapper">
+                        <div class="chart-circle"></div>
+                        <div class="chart-center">
+                            <span class="chart-center-label">Total Supply</span>
+                            <span class="chart-center-value">7.77B</span>
+                            <span class="chart-center-sub">$ROT</span>
+                            <img src="assets/rot-icon.png" alt="BrainRot logo" class="chart-logo">
+                        </div>
+                    </div>
+                    <div class="tokenomics-info">
+                        <div class="tokenomics-card">
+                            <h3>Token Details</h3>
+                            <ul>
+                                <li><span>Token Name:</span> BRAINROT</li>
+                                <li><span>Symbol:</span> $ROT</li>
+                                <li><span>Total Supply:</span> 7,777,777,777</li>
+                                <li><span>Presale Price:</span> 1 SOL = 1M $ROT</li>
+                                <li><span>Launch Price:</span> 1 SOL = 500K $ROT</li>
+                            </ul>
+                        </div>
+                        <div class="tokenomics-card">
+                            <h3>Distribution</h3>
+                            <ul>
+                                <li><span>Presale (33.3%):</span> 2.59B $ROT</li>
+                                <li><span>Liquidity (25%):</span> 1.94B $ROT</li>
+                                <li><span>Marketing (20%):</span> 1.56B $ROT</li>
+                                <li><span>Team (10%):</span> 777M $ROT</li>
+                                <li><span>Development (11.7%):</span> 910M $ROT</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Memes Section -->
+    <section class="memes">
+        <div class="container">
+            <h2 class="section-title">BrainRot Memes</h2>
+            <p class="section-subtitle">The dankest memes in crypto</p>
+            <div class="memes-grid">
+                <figure class="meme-card">
+                    <img src="assets/memes/meme1.png" alt="BrainRot meme 1" loading="lazy">
+                </figure>
+                <figure class="meme-card">
+                    <img src="assets/memes/meme2.png" alt="BrainRot meme 2" loading="lazy">
+                </figure>
+                <figure class="meme-card">
+                    <img src="assets/memes/meme3.png" alt="BrainRot meme 3" loading="lazy">
+                </figure>
+                <figure class="meme-card">
+                    <img src="assets/memes/meme4.png" alt="BrainRot meme 4" loading="lazy">
+                </figure>
+                <figure class="meme-card">
+                    <img src="assets/memes/meme5.png" alt="BrainRot meme 5" loading="lazy">
+                </figure>
+                <figure class="meme-card">
+                    <img src="assets/memes/meme6.png" alt="BrainRot meme 6" loading="lazy">
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- Referral Section -->
+    <section class="referral">
+        <div class="container">
+            <div class="referral-heading">
+                <div class="referral-crown" aria-hidden="true">
+                    <svg viewBox="0 0 72 64" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="crownBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ffe9a3" />
+                                <stop offset="35%" stop-color="#ffd36a" />
+                                <stop offset="70%" stop-color="#ffb347" />
+                                <stop offset="100%" stop-color="#ff9e45" />
+                            </linearGradient>
+                            <linearGradient id="crownShine" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+                                <stop offset="40%" stop-color="#ffffff" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M8 24l10-12 12 12 6-16 6 16 12-12 10 12v22c0 3.3-2.7 6-6 6H14c-3.3 0-6-2.7-6-6V24z" fill="url(#crownBody)" stroke="#d49b3c" stroke-width="2.2" stroke-linejoin="round" />
+                        <path d="M12 45h48" stroke="rgba(255, 231, 168, 0.7)" stroke-width="2" stroke-linecap="round" />
+                        <path d="M18 24a4 4 0 1 1 0-8M36 18a4 4 0 1 1 0-8M54 24a4 4 0 1 1 0-8" fill="#ffeebc" stroke="#d49b3c" stroke-width="1.8" />
+                        <path d="M12 30l12 6 12-10 12 10 12-6" stroke="rgba(255, 255, 255, 0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M8 32l56 0" stroke="rgba(0, 0, 0, 0.25)" stroke-width="1.4" />
+                        <path d="M14 20c6 2 12 2 18 0" stroke="url(#crownShine)" stroke-width="4" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <h2 class="section-title referral-title">Referral Program</h2>
+            </div>
+            <p class="section-subtitle">Earn $ROT by inviting friends</p>
+            <div class="referral-card">
+                <div class="referral-stats">
+                    <div class="referral-stat">
+                        <span class="stat-value">1,000</span>
+                        <span class="stat-label">$ROT per login</span>
+                    </div>
+                    <div class="referral-stat">
+                        <span class="stat-value">10,000</span>
+                        <span class="stat-label">$ROT per purchase</span>
+                    </div>
+                </div>
+                <div class="referral-input">
+                    <input type="text" id="referral-code" placeholder="Enter referral code" class="referral-input-field">
+                    <button id="apply-referral" class="referral-btn">Apply</button>
+                </div>
+                <div class="user-referral">
+                    <p>Your referral link:</p>
+                    <div class="referral-link-container">
+                        <input type="text" id="user-referral-link" readonly class="referral-link">
+                        <button id="copy-referral" class="copy-btn">📋</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap" class="roadmap">
+        <div class="container">
+            <h2 class="section-title">Roadmap</h2>
+            <p class="section-subtitle">A relentless march from meme inception to global domination.</p>
+
+            <div class="roadmap-grid">
+                <div class="roadmap-card in-progress">
+                    <div class="roadmap-header">
+                        <div class="roadmap-icon">
+                            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M32 6c6 6 10 13 10 20 0 7-4 14-10 20-6-6-10-13-10-20 0-7 4-14 10-20z" opacity="0.2" fill="currentColor" />
+                                <path d="M28 44l-2 12 6-4 6 4-2-12" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M32 18l4 8-4 4-4-4 4-8z" stroke-linecap="round" stroke-linejoin="round" />
+                                <circle cx="32" cy="22" r="2.8" fill="currentColor" />
+                            </svg>
+                        </div>
+                        <div class="roadmap-meta">
+                            <span class="roadmap-quarter">Q1 2025</span>
+                            <span class="roadmap-title">Launch Phase</span>
+                        </div>
+                        <span class="roadmap-status">In Progress</span>
+                    </div>
+                    <ul class="roadmap-list">
+                        <li>Website Launch</li>
+                        <li>Presale Live</li>
+                        <li>Community Building</li>
+                        <li>Meme Creation</li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card coming-soon">
+                    <div class="roadmap-header">
+                        <div class="roadmap-icon">
+                            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="32" cy="32" r="18" opacity="0.18" fill="currentColor" />
+                                <path d="M20 36h10l-4 6" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M44 28H34l4-6" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M24 24l16 16" stroke-linecap="round" />
+                                <path d="M24 40l-4 4" stroke-linecap="round" />
+                                <path d="M40 24l4-4" stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div class="roadmap-meta">
+                            <span class="roadmap-quarter">Q2 2025</span>
+                            <span class="roadmap-title">Exchange Phase</span>
+                        </div>
+                        <span class="roadmap-status">Coming Soon</span>
+                    </div>
+                    <ul class="roadmap-list">
+                        <li>DEX Listings</li>
+                        <li>Major CEX Listings</li>
+                        <li>Influencer Partnerships</li>
+                        <li>Staking Rewards</li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card planned">
+                    <div class="roadmap-header">
+                        <div class="roadmap-icon">
+                            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M16 22l16-10 16 10v20l-16 10-16-10V22z" opacity="0.16" fill="currentColor" />
+                                <path d="M32 12v16" stroke-linecap="round" />
+                                <path d="M16 22l16 10 16-10" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M16 42l16-10 16 10" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div class="roadmap-meta">
+                            <span class="roadmap-quarter">Q3 2025</span>
+                            <span class="roadmap-title">Ecosystem Phase</span>
+                        </div>
+                        <span class="roadmap-status">Planned</span>
+                    </div>
+                    <ul class="roadmap-list">
+                        <li>Brainrot Games</li>
+                        <li>NFT Collection</li>
+                        <li>DAO Governance</li>
+                        <li>Mobile App</li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card future">
+                    <div class="roadmap-header">
+                        <div class="roadmap-icon">
+                            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M32 12l6 10 12 2-9 9 2.5 12.5L32 38l-11.5 7.5L23 33 12 24l12-2z" opacity="0.18" fill="currentColor" />
+                                <path d="M32 12v11" stroke-linecap="round" />
+                                <path d="M32 38l-8 12" stroke-linecap="round" />
+                                <path d="M32 38l8 12" stroke-linecap="round" />
+                                <circle cx="32" cy="24" r="3" fill="currentColor" />
+                            </svg>
+                        </div>
+                        <div class="roadmap-meta">
+                            <span class="roadmap-quarter">Q4 2025</span>
+                            <span class="roadmap-title">Domination Phase</span>
+                        </div>
+                        <span class="roadmap-status">Future</span>
+                    </div>
+                    <ul class="roadmap-list">
+                        <li>Global Expansion</li>
+                        <li>Top 10 Memecoin</li>
+                        <li>Metaverse Integration</li>
+                        <li>Moon Mission</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <div class="container">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What is BrainRot?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>BrainRot is a community-fueled meme coin born on Solana. We mix viral culture, gamified drops, and real utility to build the loudest, most unhinged community in crypto.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How do I join the presale?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Click “Connect Wallet”, choose Phantom, and set your SOL contribution in the calculator. Once you confirm the transaction, your allocation is secured instantly.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What are the purchase limits?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Each transaction supports a minimum of 0.1 SOL and a maximum of 10 SOL. You can make multiple purchases until the phase allocation sells out.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Which wallets are supported?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Phantom is fully integrated today. Backpack and Solflare are on the shortlist and will be enabled once the mainnet claim goes live.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What utility does $ROT offer?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>$ROT unlocks meme contests, DAO governance, referral rewards, upcoming BrainRot Arcade games, and premium drops reserved for holders.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How is liquidity protected after launch?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>25% of supply funds liquidity and is locked for 12 months. Treasury actions require a multi-signature approval from the core team and community advisors.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>When will $ROT list on exchanges?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Per our roadmap, Raydium and Orca listings drop in Q2 2025 with CEX applications filed in parallel. Official announcements will land in the community channels first.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How do I stay updated?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Join the Telegram raid squad, follow the official X account, and subscribe to the weekly “Rot Report” newsletter to catch alpha before it hits the timeline.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="assets/rot-icon.png" alt="BrainRot Logo" class="footer-logo-img">
+                        <span>BrainRot</span>
+                    </div>
+                    <p>The meme coin revolution starts here.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="#presale">Presale</a>
+                    <a href="#tokenomics">Tokenomics</a>
+                    <a href="#roadmap">Roadmap</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <a href="https://t.me/rottedbrains" target="_blank">Telegram</a>
+                    <a href="https://x.com/kiralykaro61319?s=21" target="_blank">Twitter</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 BrainRot. Not financial advice. DYOR.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Wallet Connection Modal -->
+    <div id="wallet-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Connect Wallet</h3>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <button id="phantom-connect" class="wallet-option">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%234C4CFF'/%3E%3Ctext x='50' y='55' text-anchor='middle' font-family='Arial' font-size='16' font-weight='bold' fill='white'%3E👻%3C/text%3E%3C/svg%3E" alt="Phantom">
+                    <span>Phantom Wallet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="purchase-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Buy $ROT Tokens</h3>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="purchase-info">
+                    <div class="purchase-phase">
+                        <span class="phase-label">Current Phase:</span>
+                        <span class="phase-value" id="modal-phase">Phase 1</span>
+                    </div>
+                    <div class="purchase-rate">
+                        <span class="rate-label">Rate:</span>
+                        <span class="rate-value" id="modal-rate">1,000,000 ROT = 1 SOL</span>
+                    </div>
+                    <div class="purchase-bonus">
+                        <span class="bonus-label">Bonus:</span>
+                        <span class="bonus-value" id="modal-bonus">50%</span>
+                    </div>
+                </div>
+                <div class="purchase-input">
+                    <label for="sol-amount">SOL Amount (0.1 - 10):</label>
+                    <input type="number" id="sol-amount" min="0.1" max="10" step="0.1" placeholder="1.0">
+                </div>
+                <div class="purchase-calculation">
+                    <div class="calc-row">
+                        <span>SOL Amount:</span>
+                        <span id="calc-sol">0</span>
+                    </div>
+                    <div class="calc-row">
+                        <span>Base Tokens:</span>
+                        <span id="calc-tokens">0</span>
+                    </div>
+                    <div class="calc-row">
+                        <span>Bonus Tokens:</span>
+                        <span id="calc-bonus-tokens">0</span>
+                    </div>
+                    <div class="calc-row total">
+                        <span>Total $ROT:</span>
+                        <span id="calc-total">0</span>
+                    </div>
+                </div>
+                <button id="confirm-purchase" class="purchase-btn">Confirm Purchase</button>
+                <div id="manual-payment-info" class="manual-payment" style="display: none;">
+                    <h4>Manual Payment</h4>
+                    <p>If your wallet transaction failed, send SOL manually to the presale address below and contact support with your transaction hash.</p>
+                    <div class="manual-details">
+                        <span class="manual-label">Presale Address:</span>
+                        <button id="manual-payment-address" class="manual-address" type="button">Loading...</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content admin-modal">
+            <div class="modal-header">
+                <h3>Admin Panel</h3>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="admin-section">
+                    <h4>Token Management</h4>
+                    <div class="admin-form">
+                        <div class="form-group">
+                            <label for="admin-action">Action:</label>
+                            <select id="admin-action" class="admin-input">
+                                <option value="send">Send Tokens</option>
+                                <option value="withdraw">Withdraw Tokens</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-user-address">User SOL Address:</label>
+                            <input type="text" id="admin-user-address" placeholder="User's SOL address" class="admin-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-token-amount">Token Amount:</label>
+                            <input type="number" id="admin-token-amount" min="1" max="20000000" placeholder="Max 20M per day" class="admin-input">
+                        </div>
+                        <button id="execute-admin-action" class="admin-btn-action">Execute</button>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h4>User Management</h4>
+                    <div class="admin-form">
+                        <div class="form-group">
+                            <label for="ban-address">User Address to Ban:</label>
+                            <input type="text" id="ban-address" placeholder="User's SOL address" class="admin-input">
+                        </div>
+                        <button id="ban-user" class="admin-btn-danger">Ban User</button>
+                    </div>
+                    <div class="banned-users">
+                        <h5>Banned Users:</h5>
+                        <div id="banned-list">No banned users</div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h4>Daily Limits</h4>
+                    <div class="daily-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Tokens Sent Today:</span>
+                            <span class="stat-value" id="tokens-sent-today">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Remaining Limit:</span>
+                            <span class="stat-value" id="remaining-limit">20,000,000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="script_working.js"></script>
+</body>
+</html>
