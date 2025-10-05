@@ -1,3 +1,10 @@
+.gradient-text-warm {
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
 /* BrainRot Presale Website Styles with Admin Panel */
 
 :root {
@@ -384,6 +391,15 @@ a:hover {
 
 .twitter-btn {
     background-color: #1da1f2;
+}
+
+.instagram-btn {
+    background-color: #e1306c;
+}
+
+.instagram-btn:hover {
+    background-color: #c12a5c;
+    color: white;
 }
 
 /* Manual Payment Info */
@@ -941,11 +957,11 @@ section {
     height: 100%;
     border-radius: 50%;
     background: conic-gradient(
-        #ff6b6b 0% 33%,
-        #34d399 33% 58%,
-        #60a5fa 58% 78%,
-        #fbbf24 78% 93%,
-        #a855f7 93% 100%
+        #ff6b6b 0% 33.3%,
+        #fbbf24 33.3% 58.3%,
+        #34d399 58.3% 78.3%,
+        #60a5fa 78.3% 88.3%,
+        #a855f7 88.3% 100%
     );
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
 }
@@ -1012,10 +1028,18 @@ section {
     backdrop-filter: blur(14px);
 }
 
+.tokenomics .section-title,
+.tokenomics-info .tokenomics-card h3 {
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
 .tokenomics-info .tokenomics-card h3 {
     margin-bottom: 1.25rem;
     font-size: 1.25rem;
-    color: white;
     font-weight: 700;
 }
 
@@ -1036,45 +1060,61 @@ section {
     font-weight: 500;
 }
 
-.tokenomics-info .tokenomics-card li span:first-child {
-    font-weight: 700;
-    color: var(--primary-text);
+.tokenomics-info .tokenomics-card:first-child li > span:last-child {
+    color: #a5f3fc;
 }
 
-.tokenomics-info .tokenomics-card li:nth-child(1) span:last-child {
+.tokenomics-info .tokenomics-card:nth-child(2) li > span:last-child {
+    color: #22d3ee;
+}
+
+.tokenomics-info .tokenomics-card .token-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tokenomics-info .tokenomics-card .token-label,
+.tokenomics-info .tokenomics-card .token-percentage,
+.tokenomics-info .tokenomics-card .token-value {
+    font-size: 1rem;
+    font-weight: 600;
+}
+.tokenomics-info .tokenomics-card .token-label {
+    color: var(--primary-text);
+}
+.tokenomics-info .tokenomics-card .token-percentage {
+    color: inherit;
+}
+.tokenomics-info .tokenomics-card .token-value {
+    color: #22d3ee;
+}
+
+.tokenomics-info .tokenomics-card .token-label-1,
+.tokenomics-info .tokenomics-card .token-percentage-1 {
     color: #ff6b6b;
 }
 
-.tokenomics-info .tokenomics-card li:nth-child(2) span:last-child {
+.tokenomics-info .tokenomics-card .token-label-2,
+.tokenomics-info .tokenomics-card .token-percentage-2 {
     color: #fbbf24;
 }
 
-.tokenomics-info .tokenomics-card li:nth-child(3) span:last-child {
+.tokenomics-info .tokenomics-card .token-label-3,
+.tokenomics-info .tokenomics-card .token-percentage-3 {
     color: #34d399;
 }
 
-.tokenomics-info .tokenomics-card li:nth-child(4) span:last-child {
+.tokenomics-info .tokenomics-card .token-label-4,
+.tokenomics-info .tokenomics-card .token-percentage-4 {
     color: #60a5fa;
 }
 
-.tokenomics-info .tokenomics-card li:nth-child(5) span:last-child {
+.tokenomics-info .tokenomics-card .token-label-5,
+.tokenomics-info .tokenomics-card .token-percentage-5 {
     color: #a855f7;
 }
 
-@media (max-width: 992px) {
-    .tokenomics-info {
-        grid-template-columns: 1fr;
-    }
-}
-
-.roadmap {
-    padding: 6rem 0;
-    background: #000000;
-}
-
-.roadmap .section-title {
-    color: #34d399;
-}
 
 .roadmap-grid {
     display: grid;
