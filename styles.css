@@ -346,8 +346,8 @@ a:hover {
     transform: none;
 }
 
+
 .cta-subtitle {
-    margin-top: 1rem;
     color: var(--secondary-text);
     font-size: var(--font-size-small);
 }
@@ -401,6 +401,7 @@ a:hover {
     background-color: #c12a5c;
     color: white;
 }
+
 
 /* Manual Payment Info */
 .manual-payment {
@@ -937,6 +938,8 @@ section {
     flex-direction: column;
     align-items: center;
     gap: 3rem;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 .tokenomics-chart {
@@ -944,11 +947,12 @@ section {
     flex-direction: column;
     align-items: center;
     gap: 2rem;
+    width: 100%;
 }
 
 .chart-wrapper {
     position: relative;
-    width: 320px;
+    width: min(260px, 100%);
     aspect-ratio: 1 / 1;
 }
 
@@ -996,27 +1000,33 @@ section {
     line-height: 1;
 }
 
-.chart-center-sub {
-    font-size: 1rem;
-    color: var(--accent-text);
-    margin-top: 0.25rem;
+.chart-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: clamp(72px, 40%, 150px);
+    height: auto;
+    filter: drop-shadow(0 10px 22px rgba(79, 209, 76, 0.45));
+    opacity: 0.92;
+    pointer-events: none;
 }
 
-.chart-logo {
-    width: 56px;
-    height: 56px;
+.cta-subtitle {
+    font-size: 0.95rem;
+    color: var(--secondary-text);
     margin-top: 0.75rem;
     opacity: 0.9;
     filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
 }
 
-
 .tokenomics-info {
-    margin-top: 3rem;
+    margin: 3rem auto 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2.5rem;
+    gap: 2rem;
     width: 100%;
+    max-width: 900px;
 }
 
 .tokenomics-info .tokenomics-card {
@@ -1365,7 +1375,9 @@ section {
 .memes-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 2rem;
+    gap: 1.5rem;
+    max-width: 960px;
+    margin: 0 auto;
 }
 
 .meme-card {
@@ -1380,7 +1392,15 @@ section {
     animation: memeFloat 7.5s ease-in-out infinite;
 }
 
+.meme-card::before {
+    content: '';
+    display: block;
+    padding-bottom: 120%;
+}
+
 .meme-card img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1423,7 +1443,7 @@ section {
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), 0 0 22px rgba(52, 211, 153, 0.18);
 }
 
-.meme-card::before {
+.meme-card::after {
     content: '';
     position: absolute;
     inset: -20%;
@@ -1433,7 +1453,7 @@ section {
     pointer-events: none;
 }
 
-.meme-card:hover::before {
+.meme-card:hover::after {
     opacity: 1;
 }
 
@@ -2384,3 +2404,367 @@ section {
     font-family: 'Courier New', monospace;
     border: 1px solid var(--border-color);
 }
+/* === Roadmap Timeline 3D Overhaul === */
+.roadmap-timeline {
+    position: relative;
+    display: grid;
+    gap: 3.5rem;
+    margin-top: 3.5rem;
+    perspective: 1600px;
+}
+
+.roadmap-timeline::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: 0 auto;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(52, 211, 153, 0), rgba(52, 211, 153, 0.35) 20%, rgba(96, 165, 250, 0.4) 80%, rgba(168, 85, 247, 0));
+    filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.35));
+    pointer-events: none;
+}
+
+.roadmap-phase {
+    position: relative;
+    background: linear-gradient(155deg, rgba(14, 16, 28, 0.92), rgba(9, 11, 20, 0.88));
+    border-radius: calc(var(--border-radius) * 1.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: clamp(2.5rem, 4vw, 3.25rem);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(18px);
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transform: translateZ(0) rotateX(0deg);
+    transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1), border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.roadmap-phase:hover {
+    transform: translateY(-10px) translateZ(46px) rotateX(5deg);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 48px 95px rgba(0, 0, 0, 0.68);
+}
+
+.phase-glow {
+    position: absolute;
+    inset: -35% -25% auto;
+    height: 70%;
+    opacity: 0.55;
+    filter: blur(65px);
+    transform: translateZ(-40px);
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.roadmap-phase:hover .phase-glow {
+    opacity: 0.9;
+}
+
+.phase-grid {
+    position: absolute;
+    inset: 12% 6% 8% 6%;
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 55%);
+    opacity: 0.35;
+    mix-blend-mode: screen;
+    transform: translateZ(-18px);
+    pointer-events: none;
+}
+
+.phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+    position: relative;
+    z-index: 1;
+}
+
+.phase-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.phase-quarter {
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(180, 192, 212, 0.65);
+}
+
+.phase-title {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    text-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+}
+
+.phase-status {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    padding: 0.55rem 1.35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(240, 245, 255, 0.88);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.status-live {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.35), rgba(16, 185, 129, 0.6));
+    border-color: rgba(45, 212, 191, 0.6);
+    color: #e9fff5;
+}
+
+.status-next {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(96, 165, 250, 0.55));
+    border-color: rgba(96, 165, 250, 0.6);
+    color: #e7f1ff;
+}
+
+.status-planned {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.3), rgba(165, 180, 252, 0.5));
+    border-color: rgba(165, 180, 252, 0.6);
+    color: #f5f0ff;
+}
+
+.status-future {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.32), rgba(251, 191, 36, 0.45));
+    border-color: rgba(251, 191, 36, 0.55);
+    color: #fff8e8;
+}
+
+.phase-subtitle {
+    font-size: 1rem;
+    color: rgba(206, 214, 228, 0.72);
+    margin: 0 0 2rem;
+    max-width: 38rem;
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+}
+
+.phase-milestones {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.milestone-card {
+    position: relative;
+    background: rgba(14, 18, 30, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: calc(var(--border-radius) * 0.9);
+    padding: 1.35rem 1.25rem 1.45rem;
+    box-shadow: 0 20px 32px rgba(0, 0, 0, 0.45);
+    transition: transform 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease;
+    transform-style: preserve-3d;
+}
+
+.milestone-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0));
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+}
+
+.milestone-card:hover {
+    transform: translateY(-6px) translateZ(22px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 32px 58px rgba(0, 0, 0, 0.55);
+}
+
+.milestone-card:hover::after {
+    opacity: 1;
+}
+
+.milestone-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+}
+
+.milestone-icon svg {
+    width: 22px;
+    height: 22px;
+    color: inherit;
+}
+
+.milestone-label {
+    display: block;
+    font-weight: 700;
+    color: rgba(240, 245, 255, 0.92);
+    margin-bottom: 0.45rem;
+}
+
+.milestone-desc {
+    font-size: 0.9rem;
+    color: rgba(196, 204, 220, 0.72);
+    line-height: 1.55;
+}
+
+.roadmap-phase[data-theme= launch] {
+    --phase-glow: rgba(74, 222, 128, 0.35);
+    --phase-icon: rgba(74, 222, 128, 0.75);
+}
+
+.roadmap-phase[data-theme=exchange] {
+    --phase-glow: rgba(96, 165, 250, 0.35);
+    --phase-icon: rgba(96, 165, 250, 0.75);
+}
+
+.roadmap-phase[data-theme=ecosystem] {
+    --phase-glow: rgba(168, 85, 247, 0.38);
+    --phase-icon: rgba(168, 85, 247, 0.75);
+}
+
+.roadmap-phase[data-theme=domination] {
+    --phase-glow: rgba(249, 115, 22, 0.38);
+    --phase-icon: rgba(249, 115, 22, 0.78);
+}
+
+.roadmap-phase[data-theme] .phase-glow {
+    background: radial-gradient(circle at top left, var(--phase-glow), transparent 55%);
+}
+
+.roadmap-phase[data-theme] .milestone-icon {
+    color: var(--phase-icon);
+    border-color: rgba(255, 255, 255, 0.14);
+    background: linear-gradient(140deg, rgba(14, 18, 32, 0.95), rgba(15, 22, 38, 0.85));
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.55);
+}
+
+.roadmap-phase[data-theme] .milestone-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 34px 60px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 1100px) {
+    .roadmap-phase {
+        transform-origin: center;
+    }
+
+    .roadmap-phase:hover {
+        transform: translateY(-6px) translateZ(28px);
+    }
+}
+
+@media (max-width: 768px) {
+    .roadmap-timeline::before {
+        left: 18px;
+        width: 1px;
+    }
+
+    .roadmap-phase {
+        padding: 2.25rem;
+    }
+
+    .phase-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .phase-status {
+        align-self: flex-start;
+    }
+
+    .phase-milestones {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .roadmap-phase {
+        padding: 2rem 1.65rem;
+    }
+
+    .phase-title {
+        font-size: 1.55rem;
+    }
+}
+
+/* === End Roadmap Timeline 3D Overhaul === */
+/* === Roadmap Mobile Enhancements === */
+@media (max-width: 768px) {
+    .roadmap-timeline {
+        gap: 2.5rem;
+    }
+
+    .roadmap-timeline::before {
+        display: none;
+    }
+
+    .roadmap-phase {
+        padding: 2.25rem 1.75rem;
+        transform: none !important;
+        box-shadow: 0 22px 45px rgba(0, 0, 0, 0.48);
+    }
+
+    .roadmap-phase:hover {
+        transform: translateY(-6px);
+    }
+
+    .phase-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .phase-heading {
+        width: 100%;
+        text-align: left;
+    }
+
+    .phase-title {
+        font-size: 1.75rem;
+    }
+
+    .phase-status {
+        font-size: 0.7rem;
+        padding: 0.45rem 1.1rem;
+    }
+
+    .phase-milestones {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .milestone-card {
+        padding: 1.2rem 1.1rem 1.3rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .roadmap-phase {
+        padding: 2rem 1.5rem;
+    }
+
+    .phase-title {
+        font-size: 1.6rem;
+    }
+
+    .phase-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .milestone-card {
+        padding: 1.1rem 1rem 1.2rem;
+    }
+}
+/* === End Roadmap Mobile Enhancements === */

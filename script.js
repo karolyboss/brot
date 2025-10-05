@@ -28,6 +28,8 @@ class BrainRotPresale {
         this.tokensSentToday = 0;
         this.todayDate = new Date().toDateString();
         this.progressInterval = null;
+        this.mobileWalletAdapter = null;
+        this.mobileConnectBtn = null;
 
         this.initializeApp();
     }
@@ -69,6 +71,11 @@ class BrainRotPresale {
         // Manual payment elements
         this.manualPaymentInfo = document.getElementById('manual-payment-info');
         this.manualPaymentAddress = document.getElementById('manual-payment-address');
+        if (this.manualPaymentAddress) {
+            this.manualPaymentAddress.dataset.address = this.presaleWallet;
+            this.manualPaymentAddress.textContent = this.presaleWallet;
+        }
+        this.mobileConnectBtn = document.getElementById('mobile-connect-phantom');
 
         // Airdrop elements
         this.claimAirdropBtn = document.getElementById('claim-airdrop-btn');
@@ -170,6 +177,10 @@ class BrainRotPresale {
             this.solInput.addEventListener('change', () => this.updateCalculations());
         }
 
+        if (this.manualPaymentAddress) {
+            this.manualPaymentAddress.addEventListener('click', () => this.copyManualPaymentAddress());
+        }
+
         // Referral system
         const applyReferralBtn = document.getElementById('apply-referral');
         if (applyReferralBtn) {
@@ -260,13 +271,19 @@ class BrainRotPresale {
 
         if (wallets.phantom) {
             console.log('✅ Phantom wallet detected!');
-            this.showNotification('✅ Phantom wallet detected! Click "Connect Wallet" to continue.', 'success');
+            this.showNotification('✅ Phantom wallet detected! Tap "Connect Wallet" to continue.', 'success');
         } else if (wallets.solflare) {
             console.log('🔄 Solflare detected');
-            this.showNotification('🔄 Solflare detected! Click "Connect Wallet" to use it.', 'info');
+            this.showNotification('🔄 Solflare detected! Tap "Connect Wallet" to use it.', 'info');
         } else {
-            console.log('❌ No supported wallets detected');
-            this.showNotification('❌ Please install Phantom wallet to continue', 'warning');
+            console.log('❌ No injected wallets detected');
+
+            if (this.isMobileDevice()) {
+                this.showNotification('📱 Open in the Phantom app browser or use the mobile connect option.', 'info');
+                this.prepareMobileWalletAdapter();
+            } else {
+                this.showNotification('❌ Please install Phantom wallet (desktop extension) to continue', 'warning');
+            }
         }
     }
 
@@ -274,57 +291,130 @@ class BrainRotPresale {
         console.log('🔗 Starting wallet connection process...');
 
         try {
-            // Check if Phantom is available
-            if (!window.solana) {
-                console.log('❌ window.solana not found');
-                this.showNotification('❌ Phantom wallet not detected. Please install it first.', 'warning');
+            if (window.solana && window.solana.isPhantom) {
+                console.log('✅ Phantom (injected) detected, attempting connection...');
+                await this.connectWithInjectedWallet();
                 return;
             }
 
-            if (!window.solana.isPhantom) {
-                console.log('❌ Not Phantom wallet:', window.solana);
-                this.showNotification('❌ Please use Phantom wallet for this dApp.', 'warning');
+            if (this.isMobileDevice()) {
+                console.log('📱 Attempting mobile wallet adapter connection');
+                await this.connectWithMobileWalletAdapter();
                 return;
             }
 
-            console.log('✅ Phantom detected, attempting connection...');
-
-            // Try to connect
-            let response;
-            try {
-                response = await window.solana.connect();
-                console.log('✅ Connection response received:', response);
-            } catch (connectError) {
-                console.error('❌ Connection failed:', connectError);
-
-                if (connectError.code === 4001) {
-                    this.showNotification('❌ Connection rejected by user', 'warning');
-                } else if (connectError.code === -32002) {
-                    this.showNotification('❌ Connection already in progress', 'warning');
-                } else {
-                    this.showNotification(`❌ Connection failed: ${connectError.message || 'Unknown error'}`, 'error');
-                }
-                return;
-            }
-
-            // Validate response
-            if (!response || !response.publicKey) {
-                console.error('❌ Invalid response from wallet:', response);
-                this.showNotification('❌ Invalid response from wallet', 'error');
-                return;
-            }
-
-            // Success!
-            this.publicKey = response.publicKey;
-            this.wallet = window.solana;
-
-            console.log('✅ Wallet connected successfully:', this.publicKey.toString());
-            this.onWalletConnected();
+            this.showNotification('❌ No supported wallet detected. Install Phantom to continue.', 'warning');
 
         } catch (error) {
             console.error('❌ Unexpected error during wallet connection:', error);
             this.showNotification('❌ Unexpected error. Please try again.', 'error');
         }
+    }
+
+    async connectWithInjectedWallet() {
+        let response;
+        try {
+            response = await window.solana.connect();
+            console.log('✅ Connection response received:', response);
+        } catch (connectError) {
+            console.error('❌ Connection failed:', connectError);
+
+            if (connectError.code === 4001) {
+                this.showNotification('❌ Connection rejected by user', 'warning');
+            } else if (connectError.code === -32002) {
+                this.showNotification('❌ Connection already in progress', 'warning');
+            } else {
+                this.showNotification(`❌ Connection failed: ${connectError.message || 'Unknown error'}`, 'error');
+            }
+            return;
+        }
+
+        if (!response || !response.publicKey) {
+            console.error('❌ Invalid response from wallet:', response);
+            this.showNotification('❌ Invalid response from wallet', 'error');
+            return;
+        }
+
+        this.publicKey = response.publicKey;
+        this.wallet = window.solana;
+
+        console.log('✅ Wallet connected successfully:', this.publicKey.toString());
+        this.onWalletConnected();
+    }
+
+    async connectWithMobileWalletAdapter() {
+        if (!window.SolanaMobileWalletAdapter) {
+            console.warn('Mobile wallet adapter library not loaded.');
+            this.promptPhantomDeepLink();
+            return;
+        }
+
+        try {
+            const adapter = new window.SolanaMobileWalletAdapter.SolanaMobileWalletAdapter({
+                addressSelector: window.SolanaMobileWalletAdapter.createDefaultAddressSelector(),
+                appIdentity: {
+                    name: 'BrainRot Presale',
+                    uri: window.location.origin,
+                    icon: `${window.location.origin}/assets/rot-icon.png`
+                },
+                authorizationResultCache: window.SolanaMobileWalletAdapter.createDefaultAuthorizationResultCache()
+            });
+
+            const result = await adapter.authorize();
+            if (!result || !result.publicKey) {
+                this.showNotification('❌ Wallet authorization failed on mobile.', 'error');
+                return;
+            }
+
+            this.publicKey = new solanaWeb3.PublicKey(result.publicKey);
+            this.wallet = adapter;
+            this.mobileWalletAdapter = adapter;
+            this.wallet = {
+                publicKey: this.publicKey,
+                signTransaction: async (transaction) => {
+                    const { signedTransactions } = await adapter.signTransactions({
+                        transactions: [transaction]
+                    });
+                    return signedTransactions[0];
+                },
+                signAndSendTransaction: async (transaction) => {
+                    const { signatures } = await adapter.signAndSendTransactions({
+                        transactions: [transaction]
+                    });
+                    return signatures[0];
+                }
+            };
+            this.onWalletConnected();
+
+        } catch (error) {
+            console.error('Mobile wallet adapter connect failed:', error);
+            this.showNotification('❌ Could not connect via mobile wallet adapter.', 'error');
+            this.promptPhantomDeepLink();
+        }
+    }
+
+    prepareMobileWalletAdapter() {
+        if (!this.mobileConnectBtn) {
+            this.mobileConnectBtn = document.getElementById('mobile-connect-phantom');
+        }
+
+        if (!this.mobileConnectBtn) {
+            return;
+        }
+
+        this.mobileConnectBtn.style.display = 'flex';
+        this.mobileConnectBtn.addEventListener('click', () => this.promptPhantomDeepLink());
+    }
+
+    promptPhantomDeepLink() {
+        const appUrl = encodeURIComponent(window.location.href);
+        const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+        window.location.href = deepLink;
+    }
+
+    isMobileDevice() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        return /android|iphone|ipad|ipod/i.test(userAgent);
     }
 
     onWalletConnected() {
@@ -608,10 +698,7 @@ class BrainRotPresale {
         if (modalBonus) modalBonus.textContent = `${phase.bonus}%`;
 
         // Hide manual payment info when opening modal for new purchase
-        if (this.manualPaymentInfo) {
-            this.manualPaymentInfo.style.display = 'none';
-        }
-
+        this.hideManualPaymentFallback();
         this.updateCalculations();
     }
 
@@ -700,11 +787,7 @@ class BrainRotPresale {
                 this.updateUserBalanceAfterPurchase();
             } else {
                 console.log('❌ Purchase failed');
-                // Show manual payment info when purchase fails
-                if (this.manualPaymentInfo && this.manualPaymentAddress) {
-                    this.manualPaymentAddress.textContent = this.presaleWallet;
-                    this.manualPaymentInfo.style.display = 'block';
-                }
+                this.showManualPaymentFallback();
                 this.showNotification('❌ Purchase failed. Please use manual payment below.', 'error');
             }
 
@@ -712,10 +795,55 @@ class BrainRotPresale {
             console.error('❌ Purchase error:', error);
             this.showNotification(`❌ Purchase failed: ${error.message || 'Unknown error'}`, 'error');
             // Show manual payment info on error too
-            if (this.manualPaymentInfo && this.manualPaymentAddress) {
-                this.manualPaymentAddress.textContent = this.presaleWallet;
-                this.manualPaymentInfo.style.display = 'block';
+            this.showManualPaymentFallback();
+        }
+    }
+
+    showManualPaymentFallback() {
+        if (!this.manualPaymentInfo || !this.manualPaymentAddress) return;
+
+        const address = this.presaleWallet;
+        this.manualPaymentAddress.textContent = address;
+        this.manualPaymentAddress.dataset.address = address;
+        this.manualPaymentAddress.classList.remove('copied');
+        this.manualPaymentInfo.style.display = 'block';
+    }
+
+    hideManualPaymentFallback() {
+        if (this.manualPaymentInfo) {
+            this.manualPaymentInfo.style.display = 'none';
+        }
+
+        if (this.manualPaymentAddress) {
+            this.manualPaymentAddress.classList.remove('copied');
+        }
+    }
+
+    async copyManualPaymentAddress() {
+        if (!this.manualPaymentAddress) return;
+
+        const address = this.manualPaymentAddress.dataset.address || this.presaleWallet;
+        if (!address) return;
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(address);
+            } else {
+                const tempInput = document.createElement('input');
+                tempInput.value = address;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
             }
+
+            this.manualPaymentAddress.classList.add('copied');
+            setTimeout(() => this.manualPaymentAddress?.classList.remove('copied'), 2000);
+            this.showNotification('Presale wallet address copied!', 'success');
+
+        } catch (error) {
+            console.error('Failed to copy presale address:', error);
+            this.showNotification('Could not copy address. Please copy manually.', 'error');
         }
     }
 
