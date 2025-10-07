@@ -1404,8 +1404,9 @@ class BrainRotPresale {
         const currentUrl = window.location.href;
         const appUrl = encodeURIComponent(currentUrl);
 
-        // Use the correct Phantom mobile app URL scheme
-        const phantomAppUrl = `phantom://app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+        // Use the correct Phantom mobile app URL scheme for deep linking
+        // Format: phantom://browse/{encoded_url}
+        const phantomAppUrl = `phantom://browse/${appUrl}`;
 
         console.log('📱 Opening Phantom app with mobile URL scheme:', phantomAppUrl);
 
@@ -1424,17 +1425,17 @@ class BrainRotPresale {
                 // Set up a fallback in case the mobile URL scheme doesn't work
                 setTimeout(() => {
                     if (!this.publicKey) {
-                        console.log('🔄 Mobile URL scheme may have failed, trying web fallback...');
-                        // Try the web URL as fallback (this might open in browser)
-                        const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
-                        window.location.href = webUrl;
+                        console.log('🔄 Mobile URL scheme may have failed, trying alternative method...');
+                        // Try alternative format
+                        const alternativeUrl = `phantom://connect?uri=${appUrl}`;
+                        window.location.href = alternativeUrl;
                     }
                 }, 3000);
             } catch (error) {
                 console.error('❌ Mobile URL scheme failed:', error);
-                // Fallback to web URL
-                const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
-                window.location.href = webUrl;
+                // Try alternative format
+                const alternativeUrl = `phantom://connect?uri=${appUrl}`;
+                window.location.href = alternativeUrl;
             }
         } else {
             // For desktop, open in new tab
@@ -1572,12 +1573,101 @@ class BrainRotPresale {
         document.body.appendChild(helpDiv);
     }
 
+    showConnectionInstructions() {
+        const instructionsDiv = document.createElement('div');
+        instructionsDiv.id = 'connection-instructions';
+        instructionsDiv.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                z-index: 10002;
+                max-width: 450px;
+                text-align: center;
+            ">
+                <h3 style="margin-top: 0; color: #333;">📱 Connect Phantom Wallet</h3>
+                <div style="text-align: left; margin: 1.5rem 0;">
+                    <p style="margin-bottom: 1rem; color: #666;">
+                        <strong>After Phantom app opens:</strong>
+                    </p>
+                    <ol style="color: #666; padding-left: 1.5rem;">
+                        <li style="margin-bottom: 0.5rem;">Connect your wallet in Phantom</li>
+                        <li style="margin-bottom: 0.5rem;">Tap "Connect" when prompted</li>
+                        <li style="margin-bottom: 0.5rem;">Return to this website</li>
+                        <li style="margin-bottom: 0.5rem;">Your wallet should connect automatically</li>
+                    </ol>
+                    <p style="margin-top: 1.5rem; color: #666;">
+                        <strong>If it doesn't connect automatically:</strong>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button id="try-manual-connect" style="
+                        background: #ab9ff2;
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 1.5rem;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    ">
+                        🔗 Try Manual Connect
+                    </button>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                        background: #f1f5f9;
+                        border: 1px solid #e2e8f0;
+                        color: #64748b;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10001;
+        `;
+
+        backdrop.addEventListener('click', () => {
+            instructionsDiv.remove();
+            backdrop.remove();
+        });
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(instructionsDiv);
+
+        // Add event listener for manual connect button
+        const manualBtn = document.getElementById('try-manual-connect');
+        if (manualBtn) {
+            manualBtn.addEventListener('click', () => {
+                instructionsDiv.remove();
+                backdrop.remove();
+                this.showManualConnectionOption();
+            });
+        }
+    }
+
     promptPhantomDeepLink() {
         const currentUrl = window.location.href;
         const appUrl = encodeURIComponent(currentUrl);
 
-        // Use the correct Phantom mobile app URL scheme
-        const phantomAppUrl = `phantom://app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+        // Use the correct Phantom mobile app URL scheme for deep linking
+        const phantomAppUrl = `phantom://browse/${appUrl}`;
 
         console.log('📱 Using Phantom mobile URL scheme:', phantomAppUrl);
 
@@ -1589,9 +1679,9 @@ class BrainRotPresale {
             try {
                 window.location.href = phantomAppUrl;
             } catch (error) {
-                console.error('❌ Mobile URL scheme failed, trying web fallback');
-                const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
-                window.location.href = webUrl;
+                console.error('❌ Mobile URL scheme failed, trying alternative');
+                const alternativeUrl = `phantom://connect?uri=${appUrl}`;
+                window.location.href = alternativeUrl;
             }
         } else {
             // For desktop, use web URL
