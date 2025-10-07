@@ -1179,7 +1179,7 @@ class BrainRotPresale {
                     console.log('✅ Found existing publicKey:', publicKey.toString());
                 }
                 // Method 2: Try to connect if not already connected
-                else if (window.solana.connect) {
+                else if (window.solana.connect && typeof window.solana.connect === 'function') {
                     console.log('🔄 Attempting to detect Phantom connection...');
                     const response = await window.solana.connect();
                     if (response && response.publicKey) {
@@ -1203,6 +1203,26 @@ class BrainRotPresale {
 
         // Enhanced wallet detection using the comprehensive detection method
         const walletDetected = await this.detectAvailableWallets();
+
+        // Try to force connection if wallet is detected but not connected
+        if (walletDetected && window.solana && !this.publicKey) {
+            console.log('🔄 Wallet detected but not connected, attempting connection...');
+
+            try {
+                if (window.solana.connect && typeof window.solana.connect === 'function') {
+                    const response = await window.solana.connect();
+                    if (response && response.publicKey) {
+                        this.publicKey = response.publicKey;
+                        this.wallet = window.solana;
+                        console.log('✅ Force-connected to wallet!');
+                        this.onWalletConnected();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('❌ Force connection failed:', error.message);
+            }
+        }
 
         // Fallback wallet detection
         if (wallets.phantom) {
@@ -1392,7 +1412,7 @@ class BrainRotPresale {
         const appUrl = encodeURIComponent(currentUrl);
         const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
 
-        console.log('📱 Opening Phantom app with deep link...');
+        console.log('📱 Opening Phantom app with deep link:', deepLink);
 
         // Store connection attempt for when user returns
         sessionStorage.setItem('phantom_connection_attempt', 'true');
@@ -1402,7 +1422,22 @@ class BrainRotPresale {
 
         // Try to open the app
         if (this.isMobileDevice()) {
-            window.location.href = deepLink;
+            // Use a more reliable method for mobile deep linking
+            try {
+                // Try to open the app directly
+                window.location.href = deepLink;
+
+                // Set up a fallback in case the deep link doesn't work
+                setTimeout(() => {
+                    if (!this.publicKey) {
+                        console.log('🔄 Deep link may have failed, trying alternative method...');
+                        this.tryAlternativeMobileConnection();
+                    }
+                }, 5000);
+            } catch (error) {
+                console.error('❌ Deep link failed:', error);
+                this.tryAlternativeMobileConnection();
+            }
         } else {
             window.open(deepLink, '_blank');
         }
@@ -1414,6 +1449,30 @@ class BrainRotPresale {
                 this.showManualConnectionOption();
             }
         }, 15000); // 15 seconds timeout
+    }
+
+    tryAlternativeMobileConnection() {
+        console.log('🔄 Trying alternative mobile connection method...');
+
+        // Try to use the Phantom app URL scheme directly
+        const alternativeDeepLink = 'phantom://wallet/connect';
+
+        try {
+            window.location.href = alternativeDeepLink;
+
+            // If that doesn't work, show manual connection option immediately
+            setTimeout(() => {
+                if (!this.publicKey) {
+                    console.log('❌ Alternative method failed, showing manual option');
+                    this.showNotification('Please open Phantom app manually and connect to this website.', 'info');
+                    this.showManualConnectionOption();
+                }
+            }, 3000);
+        } catch (error) {
+            console.error('❌ Alternative method also failed:', error);
+            this.showNotification('Please open Phantom app manually and connect to this website.', 'info');
+            this.showManualConnectionOption();
+        }
     }
 
     showManualConnectionOption() {
@@ -1552,15 +1611,34 @@ class BrainRotPresale {
         const connectionAttempt = sessionStorage.getItem('phantom_connection_attempt');
         const returnUrl = sessionStorage.getItem('phantom_return_url');
 
-        if (connectionAttempt && returnUrl && window.location.href === returnUrl) {
-            console.log('🔍 User returned from Phantom, checking wallet connection...');
+        if (connectionAttempt && returnUrl) {
+            console.log('🔍 Checking return from Phantom...');
+            console.log('Current URL:', window.location.href);
+            console.log('Expected URL:', returnUrl);
+            console.log('URLs match:', window.location.href === returnUrl);
 
-            // Clear the connection attempt flag
-            sessionStorage.removeItem('phantom_connection_attempt');
-            sessionStorage.removeItem('phantom_return_url');
+            if (window.location.href === returnUrl) {
+                console.log('🔍 User returned from Phantom, checking wallet connection...');
 
-            // Try to detect wallet connection multiple times with delays
-            this.attemptWalletDetectionWithRetry();
+                // Clear the connection attempt flag
+                sessionStorage.removeItem('phantom_connection_attempt');
+                sessionStorage.removeItem('phantom_return_url');
+
+                // Try to detect wallet connection multiple times with delays
+                this.attemptWalletDetectionWithRetry();
+            } else {
+                console.log('🔄 URLs don\'t match yet, waiting for return...');
+
+                // Wait a bit and check again in case of timing issues
+                setTimeout(() => {
+                    if (window.location.href === returnUrl && !this.publicKey) {
+                        console.log('🔍 Delayed return detection, checking wallet connection...');
+                        sessionStorage.removeItem('phantom_connection_attempt');
+                        sessionStorage.removeItem('phantom_return_url');
+                        this.attemptWalletDetectionWithRetry();
+                    }
+                }, 2000);
+            }
         }
 
         // Also check for wallet connection on page visibility change (when returning from app)
@@ -1580,11 +1658,23 @@ class BrainRotPresale {
     async attemptWalletDetectionWithRetry() {
         console.log('🔄 Starting wallet detection with retry logic...');
 
+        // First, try to detect if wallet is already connected
+        const initialDetection = await this.detectAvailableWallets();
+
+        if (initialDetection && window.solana && window.solana.publicKey) {
+            console.log('✅ Wallet already connected!');
+            this.publicKey = window.solana.publicKey;
+            this.wallet = window.solana;
+            this.onWalletConnected();
+            return;
+        }
+
         // Try multiple times with increasing delays
-        for (let attempt = 1; attempt <= 5; attempt++) {
-            console.log(`🔍 Wallet detection attempt ${attempt}/5`);
+        for (let attempt = 1; attempt <= 8; attempt++) {
+            console.log(`🔍 Wallet detection attempt ${attempt}/8`);
 
             try {
+                // Try comprehensive wallet detection
                 await this.attemptWalletDetection();
 
                 // If we successfully connected, break out of the loop
@@ -1592,12 +1682,21 @@ class BrainRotPresale {
                     console.log('✅ Wallet connection established!');
                     return;
                 }
+
+                // Also check if window.solana.publicKey exists directly
+                if (window.solana && window.solana.publicKey && !this.publicKey) {
+                    console.log('✅ Found wallet publicKey directly!');
+                    this.publicKey = window.solana.publicKey;
+                    this.wallet = window.solana;
+                    this.onWalletConnected();
+                    return;
+                }
             } catch (error) {
                 console.log(`❌ Detection attempt ${attempt} failed:`, error.message);
             }
 
             // Wait before next attempt (increasing delay)
-            const delay = attempt * 1000; // 1s, 2s, 3s, 4s, 5s
+            const delay = attempt * 800; // 0.8s, 1.6s, 2.4s, 3.2s, 4s, 4.8s, 5.6s, 6.4s
             console.log(`⏳ Waiting ${delay}ms before next attempt...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
