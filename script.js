@@ -36,6 +36,25 @@ class BrainRotPresale {
 
     async initializeApp() {
         console.log('🚀 Initializing BrainRot Presale app...');
+
+        // Wait for Solana Web3 library to load
+        let retries = 0;
+        const maxRetries = 10;
+
+        while (typeof window.solanaWeb3 === 'undefined' && retries < maxRetries) {
+            console.log(`⏳ Waiting for Solana Web3 library... (attempt ${retries + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries++;
+        }
+
+        if (typeof window.solanaWeb3 === 'undefined') {
+            console.error('❌ Solana Web3 library failed to load');
+            this.showNotification('❌ Failed to load Solana library. Please refresh the page.', 'error');
+            return;
+        }
+
+        console.log('✅ Solana Web3 library loaded successfully');
+
         this.setupElements();
         this.setupEventListeners();
         this.setupFaqAccordion();
@@ -321,15 +340,21 @@ class BrainRotPresale {
 
         if (wallets.phantom) {
             console.log('✅ Phantom wallet detected!');
-            this.showNotification('✅ Phantom wallet detected! Tap "Connect Wallet" to continue.', 'success');
+            this.showNotification('✅ Phantom wallet detected! Click "Connect Wallet" to continue.', 'success');
         } else if (wallets.solflare) {
             console.log('🔄 Solflare detected');
-            this.showNotification('🔄 Solflare detected! Tap "Connect Wallet" to use it.', 'info');
+            this.showNotification('🔄 Solflare detected! Click "Connect Wallet" to use it.', 'info');
+        } else if (wallets.backpack) {
+            console.log('🎒 Backpack detected');
+            this.showNotification('🎒 Backpack detected! Click "Connect Wallet" to use it.', 'info');
+        } else if (wallets.coinbase) {
+            console.log('💙 Coinbase detected');
+            this.showNotification('💙 Coinbase detected! Click "Connect Wallet" to use it.', 'info');
         } else {
             console.log('❌ No injected wallets detected');
 
             if (this.isMobileDevice()) {
-                this.showNotification('📱 Open in the Phantom app browser or use the mobile connect option.', 'info');
+                this.showNotification('📱 No wallet detected. Click "Connect Wallet" to open Phantom app.', 'info');
                 this.prepareMobileWalletAdapter();
 
                 // Show mobile connect wallet button if no wallet detected
@@ -342,7 +367,7 @@ class BrainRotPresale {
                     this.heroConnectWalletBtn.style.display = 'block';
                 }
             } else {
-                this.showNotification('❌ Please install Phantom wallet (desktop extension) to continue', 'warning');
+                this.showNotification('❌ No wallet detected. Please install Phantom wallet to continue.', 'warning');
             }
         }
     }
@@ -351,9 +376,35 @@ class BrainRotPresale {
         console.log('🔗 Starting wallet connection process...');
 
         try {
+            // First, ensure Solana Web3 library is loaded
+            if (typeof window.solanaWeb3 === 'undefined') {
+                console.error('❌ Solana Web3 library not loaded');
+                this.showNotification('❌ Solana library not loaded. Please refresh the page.', 'error');
+                return;
+            }
+
+            // Try different wallet types
             if (window.solana && window.solana.isPhantom) {
-                console.log('✅ Phantom (injected) detected, attempting connection...');
+                console.log('✅ Phantom wallet detected, attempting connection...');
                 await this.connectWithInjectedWallet();
+                return;
+            }
+
+            if (window.solflare) {
+                console.log('🔄 Solflare detected, attempting connection...');
+                await this.connectWithSolflare();
+                return;
+            }
+
+            if (window.backpack) {
+                console.log('🎒 Backpack detected, attempting connection...');
+                await this.connectWithBackpack();
+                return;
+            }
+
+            if (window.coinbaseSolana) {
+                console.log('💙 Coinbase detected, attempting connection...');
+                await this.connectWithCoinbase();
                 return;
             }
 
@@ -363,26 +414,30 @@ class BrainRotPresale {
                 return;
             }
 
-            this.showNotification('❌ No supported wallet detected. Install Phantom to continue.', 'warning');
+            this.showNotification('❌ No supported wallet detected. Please install a Solana wallet.', 'warning');
 
         } catch (error) {
             console.error('❌ Unexpected error during wallet connection:', error);
-            this.showNotification('❌ Unexpected error. Please try again.', 'error');
+            this.showNotification(`❌ Unexpected error: ${error.message || 'Please try again.'}`, 'error');
         }
     }
 
     async connectWithInjectedWallet() {
         let response;
         try {
+            console.log('🔐 Attempting to connect to Phantom wallet...');
             response = await window.solana.connect();
             console.log('✅ Connection response received:', response);
         } catch (connectError) {
             console.error('❌ Connection failed:', connectError);
 
+            // Handle different error codes more specifically
             if (connectError.code === 4001) {
                 this.showNotification('❌ Connection rejected by user', 'warning');
             } else if (connectError.code === -32002) {
-                this.showNotification('❌ Connection already in progress', 'warning');
+                this.showNotification('❌ Connection already in progress. Please wait...', 'warning');
+            } else if (connectError.code === -32000) {
+                this.showNotification('❌ Wallet is locked. Please unlock your wallet first.', 'warning');
             } else {
                 this.showNotification(`❌ Connection failed: ${connectError.message || 'Unknown error'}`, 'error');
             }
@@ -398,13 +453,102 @@ class BrainRotPresale {
         this.publicKey = response.publicKey;
         this.wallet = window.solana;
 
-        console.log('✅ Wallet connected successfully:', this.publicKey.toString());
+    async connectWithSolflare() {
+        let response;
+        try {
+            console.log('🔐 Attempting to connect to Solflare wallet...');
+            response = await window.solflare.connect();
+            console.log('✅ Solflare connection response received:', response);
+        } catch (connectError) {
+            console.error('❌ Solflare connection failed:', connectError);
+
+            if (connectError.code === 4001) {
+                this.showNotification('❌ Solflare connection rejected by user', 'warning');
+            } else {
+                this.showNotification(`❌ Solflare connection failed: ${connectError.message || 'Unknown error'}`, 'error');
+            }
+            return;
+        }
+
+        if (!response || !response.publicKey) {
+            console.error('❌ Invalid response from Solflare:', response);
+            this.showNotification('❌ Invalid response from Solflare', 'error');
+            return;
+        }
+
+        this.publicKey = response.publicKey;
+        this.wallet = window.solflare;
+
+        console.log('✅ Solflare wallet connected successfully:', this.publicKey.toString());
+        this.onWalletConnected();
+    }
+
+    async connectWithBackpack() {
+        let response;
+        try {
+            console.log('🔐 Attempting to connect to Backpack wallet...');
+            response = await window.backpack.connect();
+            console.log('✅ Backpack connection response received:', response);
+        } catch (connectError) {
+            console.error('❌ Backpack connection failed:', connectError);
+
+            if (connectError.code === 4001) {
+                this.showNotification('❌ Backpack connection rejected by user', 'warning');
+            } else {
+                this.showNotification(`❌ Backpack connection failed: ${connectError.message || 'Unknown error'}`, 'error');
+            }
+            return;
+        }
+
+        if (!response || !response.publicKey) {
+            console.error('❌ Invalid response from Backpack:', response);
+            this.showNotification('❌ Invalid response from Backpack', 'error');
+            return;
+        }
+
+        this.publicKey = response.publicKey;
+        this.wallet = window.backpack;
+
+        console.log('✅ Backpack wallet connected successfully:', this.publicKey.toString());
+        this.onWalletConnected();
+    }
+
+    async connectWithCoinbase() {
+        let response;
+        try {
+            console.log('🔐 Attempting to connect to Coinbase wallet...');
+            response = await window.coinbaseSolana.connect();
+            console.log('✅ Coinbase connection response received:', response);
+        } catch (connectError) {
+            console.error('❌ Coinbase connection failed:', connectError);
+
+            if (connectError.code === 4001) {
+                this.showNotification('❌ Coinbase connection rejected by user', 'warning');
+            } else {
+                this.showNotification(`❌ Coinbase connection failed: ${connectError.message || 'Unknown error'}`, 'error');
+            }
+            return;
+        }
+
+        if (!response || !response.publicKey) {
+            console.error('❌ Invalid response from Coinbase:', response);
+            this.showNotification('❌ Invalid response from Coinbase', 'error');
+            return;
+        }
+
+        this.publicKey = response.publicKey;
+        this.wallet = window.coinbaseSolana;
+
+        console.log('✅ Coinbase wallet connected successfully:', this.publicKey.toString());
         this.onWalletConnected();
     }
 
     async connectWithMobileWalletAdapter() {
+        console.log('📱 Attempting mobile wallet adapter connection...');
+
         if (!window.SolanaMobileWalletAdapter) {
-            console.warn('Mobile wallet adapter library not loaded.');
+            console.warn('❌ Mobile wallet adapter library not loaded.');
+            this.showNotification('📱 Mobile wallet adapter not available. Redirecting to Phantom app...', 'info');
             this.promptPhantomDeepLink();
             return;
         }
@@ -420,15 +564,21 @@ class BrainRotPresale {
                 authorizationResultCache: window.SolanaMobileWalletAdapter.createDefaultAuthorizationResultCache()
             });
 
+            console.log('🔗 Connecting to mobile wallet adapter...');
             const result = await adapter.authorize();
+
             if (!result || !result.publicKey) {
+                console.error('❌ Wallet authorization failed on mobile:', result);
                 this.showNotification('❌ Wallet authorization failed on mobile.', 'error');
+                this.promptPhantomDeepLink();
                 return;
             }
 
             this.publicKey = new solanaWeb3.PublicKey(result.publicKey);
             this.wallet = adapter;
             this.mobileWalletAdapter = adapter;
+
+            // Set up wallet methods for compatibility
             this.wallet = {
                 publicKey: this.publicKey,
                 signTransaction: async (transaction) => {
@@ -444,11 +594,13 @@ class BrainRotPresale {
                     return signatures[0];
                 }
             };
+
+            console.log('✅ Mobile wallet connected successfully');
             this.onWalletConnected();
 
         } catch (error) {
-            console.error('Mobile wallet adapter connect failed:', error);
-            this.showNotification('❌ Could not connect via mobile wallet adapter.', 'error');
+            console.error('❌ Mobile wallet adapter connect failed:', error);
+            this.showNotification(`❌ Mobile wallet connection failed: ${error.message || 'Please try again.'}`, 'error');
             this.promptPhantomDeepLink();
         }
     }
@@ -467,9 +619,19 @@ class BrainRotPresale {
     }
 
     promptPhantomDeepLink() {
+        console.log('🔗 Redirecting to Phantom app...');
         const appUrl = encodeURIComponent(window.location.href);
         const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
-        window.location.href = deepLink;
+
+        this.showNotification('🔗 Opening Phantom app for wallet connection...', 'info');
+
+        // For mobile devices, try to open the app directly
+        if (this.isMobileDevice()) {
+            window.location.href = deepLink;
+        } else {
+            // For desktop, open in new window
+            window.open(deepLink, '_blank');
+        }
     }
 
     isValidSolanaAddress(address) {
