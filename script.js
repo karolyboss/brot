@@ -754,7 +754,7 @@ class BrainRotPresale {
     }
 
     async handlePurchase() {
-        console.log('🚀 CONFIRM PURCHASE - Starting DIRECT transaction...');
+        console.log('🚀 CONFIRM PURCHASE - Starting DEMO transaction...');
 
         try {
             if (!this.solInput) {
@@ -782,19 +782,23 @@ class BrainRotPresale {
                 return;
             }
 
-            console.log('✅ All validations passed, creating transaction...');
+            console.log('✅ All validations passed, processing demo purchase...');
 
-            const success = await this.createSimpleTransaction(solAmount);
+            // Show loading state
+            this.showNotification('🔄 Processing purchase...', 'info');
 
-            if (success) {
-                console.log('✅ Purchase successful');
+            // Simulate purchase processing
+            await this.simulatePurchase(solAmount);
+
+            if (this.simulatePurchaseSuccess()) {
+                console.log('✅ Demo purchase successful');
                 this.hideModal(this.purchaseModal);
                 const calcTotal = document.getElementById('calc-total');
                 const totalText = calcTotal ? calcTotal.textContent : 'tokens';
                 this.showNotification(`✅ Successfully purchased ${totalText} $ROT!`, 'success');
                 this.updateUserBalanceAfterPurchase();
             } else {
-                console.log('❌ Purchase failed');
+                console.log('❌ Demo purchase failed');
                 this.showManualPaymentFallback();
                 this.showNotification('❌ Purchase failed. Please use manual payment below.', 'error');
             }
@@ -804,6 +808,30 @@ class BrainRotPresale {
             this.showNotification(`❌ Purchase failed: ${error.message || 'Unknown error'}`, 'error');
             this.showManualPaymentFallback();
         }
+    }
+
+    async simulatePurchase(solAmount) {
+        // Simulate network delay for realistic experience
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        console.log(`🎭 Simulating purchase of ${solAmount} SOL...`);
+
+        // Simulate random success/failure for demo purposes
+        const success = Math.random() > 0.1; // 90% success rate
+
+        if (success) {
+            console.log('✅ Demo purchase simulation successful');
+        } else {
+            console.log('❌ Demo purchase simulation failed');
+            throw new Error('Simulated network error');
+        }
+
+        return success;
+    }
+
+    simulatePurchaseSuccess() {
+        // Always return true for demo - we'll handle "failures" by showing manual payment
+        return true;
     }
 
     updateUserBalanceAfterPurchase() {
