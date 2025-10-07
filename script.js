@@ -45,6 +45,11 @@ class BrainRotPresale {
         // Show wallet required message initially
         this.showWalletRequiredMessage();
 
+        // Show mobile connect wallet button if on mobile and no wallet connected
+        if (this.isMobileDevice() && !this.publicKey && this.mobileConnectWalletBtn) {
+            this.mobileConnectWalletBtn.style.display = 'block';
+        }
+
         // Try wallet detection after a delay
         setTimeout(() => {
             console.log('🔍 Attempting wallet detection...');
@@ -205,9 +210,15 @@ class BrainRotPresale {
             applyReferralBtn.addEventListener('click', () => this.applyReferral());
         }
 
-        const copyReferralBtn = document.getElementById('copy-referral');
-        if (copyReferralBtn) {
-            copyReferralBtn.addEventListener('click', () => this.copyReferralLink());
+        // Mobile connect wallet button
+        this.mobileConnectWalletBtn = document.getElementById('mobile-connect-wallet');
+
+        if (this.mobileConnectWalletBtn) {
+            this.mobileConnectWalletBtn.addEventListener('click', (e) => {
+                console.log('Mobile connect wallet button clicked');
+                e.preventDefault();
+                this.showModal(this.walletModal);
+            });
         }
 
         // Airdrop
@@ -266,6 +277,15 @@ class BrainRotPresale {
 
         this.mobileMenuToggle.classList.toggle('active');
         this.navLinks.classList.toggle('active');
+
+        // Also toggle mobile connect wallet button visibility
+        if (this.mobileConnectWalletBtn) {
+            if (this.navLinks.classList.contains('active')) {
+                this.mobileConnectWalletBtn.style.display = 'block';
+            } else {
+                this.mobileConnectWalletBtn.style.display = 'none';
+            }
+        }
     }
 
     debugWalletDetection() {
@@ -306,6 +326,11 @@ class BrainRotPresale {
             if (this.isMobileDevice()) {
                 this.showNotification('📱 Open in the Phantom app browser or use the mobile connect option.', 'info');
                 this.prepareMobileWalletAdapter();
+
+                // Show mobile connect wallet button if no wallet detected
+                if (this.mobileConnectWalletBtn && !this.publicKey) {
+                    this.mobileConnectWalletBtn.style.display = 'block';
+                }
             } else {
                 this.showNotification('❌ Please install Phantom wallet (desktop extension) to continue', 'warning');
             }
@@ -475,6 +500,11 @@ class BrainRotPresale {
             // Hide connect button
             if (this.connectBtn) {
                 this.connectBtn.style.display = 'none';
+            }
+
+            // Hide mobile connect wallet button
+            if (this.mobileConnectWalletBtn) {
+                this.mobileConnectWalletBtn.style.display = 'none';
             }
 
             // Show nav balance
