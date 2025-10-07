@@ -52,6 +52,10 @@ class BrainRotPresale {
     setupElements() {
         console.log('🔧 Setting up DOM elements...');
 
+        // Mobile menu toggle
+        this.mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        this.navLinks = document.querySelector('.nav-links');
+
         // Buttons
         this.connectBtn = document.getElementById('connect-wallet');
         this.buyBtn = document.getElementById('buy-rot-btn');
@@ -111,6 +115,17 @@ class BrainRotPresale {
 
     setupEventListeners() {
         console.log('🔗 Setting up event listeners...');
+
+        // Mobile menu toggle
+        if (this.mobileMenuToggle) {
+            console.log('✅ Mobile menu toggle found, adding listener');
+            this.mobileMenuToggle.addEventListener('click', () => {
+                console.log('📱 Mobile menu toggle clicked');
+                this.toggleMobileMenu();
+            });
+        } else {
+            console.warn('⚠️ Mobile menu toggle not found');
+        }
 
         // Wallet connection - with null checks
         if (this.connectBtn) {
@@ -241,6 +256,13 @@ class BrainRotPresale {
                 }
             });
         });
+    }
+
+    toggleMobileMenu() {
+        if (!this.mobileMenuToggle || !this.navLinks) return;
+
+        this.mobileMenuToggle.classList.toggle('active');
+        this.navLinks.classList.toggle('active');
     }
 
     debugWalletDetection() {
@@ -469,6 +491,11 @@ class BrainRotPresale {
             if (this.walletModal) {
                 this.walletModal.classList.remove('show');
                 document.body.style.overflow = '';
+            }
+
+            // Close mobile menu if open
+            if (this.mobileMenuToggle && this.mobileMenuToggle.classList.contains('active')) {
+                this.toggleMobileMenu();
             }
 
             this.showNotification('✅ Wallet connected successfully!', 'success');

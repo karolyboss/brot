@@ -241,9 +241,8 @@ a:hover {
     transition: var(--transition-base);
 }
 
-/* Hero Section */
-.hero {
-    padding: calc(70px + 5rem) 0 5rem;
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
     background: radial-gradient(ellipse at center, rgba(255, 107, 107, 0.1) 0%, transparent 70%);
     position: relative;
     overflow: hidden;
@@ -2378,7 +2377,9 @@ section {
 }
 
 .admin-input[type="number"] {
+    -webkit-appearance: none;
     -moz-appearance: textfield;
+    appearance: none;
 }
 
 /* Notification styles for admin actions */
