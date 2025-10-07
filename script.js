@@ -751,7 +751,7 @@ class BrainRotPresale {
     }
 
     async handlePurchase() {
-        console.log('🚀 CONFIRM PURCHASE - Starting DEMO transaction...');
+        console.log('🚀 CONFIRM PURCHASE - Starting REAL transaction...');
 
         try {
             if (!this.solInput) {
@@ -779,31 +779,320 @@ class BrainRotPresale {
                 return;
             }
 
-            console.log('✅ All validations passed, processing demo purchase...');
+            console.log('✅ All validations passed, creating real transaction...');
 
-            // Show loading state
-            this.showNotification('🔄 Processing purchase...', 'info');
+            // Create and send real transaction
+            const success = await this.createAndSendTransaction(solAmount);
 
-            // Simulate purchase processing
-            await this.simulatePurchase(solAmount);
-
-            if (this.simulatePurchaseSuccess()) {
-                console.log('✅ Demo purchase successful');
+            if (success) {
+                console.log('✅ Purchase transaction sent successfully');
                 this.hideModal(this.purchaseModal);
                 const calcTotal = document.getElementById('calc-total');
                 const totalText = calcTotal ? calcTotal.textContent : 'tokens';
-                this.showNotification(`✅ Successfully purchased ${totalText} $ROT!`, 'success');
-                this.updateUserBalanceAfterPurchase();
+                this.showNotification(`✅ Transaction sent! ${totalText} $ROT will be credited after confirmation.`, 'success');
+
+                // Wait a bit then update balance (in production, would wait for blockchain confirmation)
+                setTimeout(() => {
+                    this.updateUserBalanceAfterPurchase();
+                }, 5000);
             } else {
-                console.log('❌ Demo purchase failed');
-                this.showManualPaymentFallback();
-                this.showNotification('❌ Purchase failed. Please use manual payment below.', 'error');
+                console.log('❌ Purchase transaction failed');
+                this.showNotification('❌ Transaction failed. Please try again.', 'error');
             }
 
         } catch (error) {
             console.error('❌ Purchase error:', error);
             this.showNotification(`❌ Purchase failed: ${error.message || 'Unknown error'}`, 'error');
-            this.showManualPaymentFallback();
+        }
+    }
+
+    async createAndSendTransaction(solAmount) {
+        try {
+            console.log('🔄 Creating transaction for', solAmount, 'SOL...');
+
+            // Get the current phase details
+            const phase = this.phases[this.currentPhase - 1];
+            const baseTokens = Math.floor(solAmount * phase.rate);
+            const bonusTokens = Math.floor(baseTokens * (phase.bonus / 100));
+            const totalTokens = baseTokens + bonusTokens;
+            const lamports = Math.floor(solAmount * 1000000000);
+
+            console.log('📊 Transaction details:', {
+                solAmount,
+                lamports,
+                toAddress: this.presaleWallet,
+                fromAddress: this.publicKey?.toString(),
+                baseTokens,
+                bonusTokens,
+                totalTokens,
+                walletConnected: !!this.wallet,
+                publicKeyExists: !!this.publicKey
+            });
+
+            // CRITICAL: Ensure wallet is properly connected
+            if (!this.wallet || !this.publicKey) {
+                console.error('❌ WALLET NOT CONNECTED');
+                this.showNotification('❌ Wallet not connected. Please connect your wallet first.', 'error');
+                return false;
+            }
+
+            // Create Solana connection
+            let connection;
+            try {
+                console.log('🌐 Creating Solana connection...');
+                connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'));
+                await connection.getVersion(); // Test connection
+                console.log('✅ Solana connection established');
+            } catch (connectionError) {
+                console.error('❌ Connection failed:', connectionError);
+                this.showNotification('❌ Network connection failed. Please check your internet.', 'error');
+                return false;
+            }
+
+            // Get blockhash
+            let blockhash, lastValidBlockHeight;
+            try {
+                console.log('📦 Getting latest blockhash...');
+                const blockhashInfo = await connection.getLatestBlockhash();
+                blockhash = blockhashInfo.blockhash;
+                lastValidBlockHeight = blockhashInfo.lastValidBlockHeight;
+                console.log('✅ Blockhash obtained');
+            } catch (blockhashError) {
+                console.error('❌ Blockhash failed:', blockhashError);
+                this.showNotification('❌ Network error. Please try again.', 'error');
+                return false;
+            }
+
+            // Create transaction
+            const { Transaction, SystemProgram, PublicKey } = window.solanaWeb3;
+
+            console.log('📝 Creating transaction...');
+            const transaction = new Transaction().add(
+                SystemProgram.transfer({
+                    fromPubkey: this.publicKey,
+                    toPubkey: new PublicKey(this.presaleWallet),
+                    lamports: lamports
+                })
+            );
+
+            // Set transaction properties
+            transaction.recentBlockhash = blockhash;
+            transaction.lastValidBlockHeight = lastValidBlockHeight;
+            transaction.feePayer = this.publicKey;
+
+            console.log('✍️ Transaction created, requesting wallet signature...');
+
+            // DIRECT WALLET SIGNATURE - This should trigger Phantom popup
+            let signedTransaction;
+            try {
+                console.log('🔐 REQUESTING WALLET SIGNATURE - Phantom popup should appear now...');
+
+                signedTransaction = await this.wallet.signTransaction(transaction);
+                console.log('✅ Transaction signed by wallet');
+
+            } catch (signError) {
+                console.error('❌ Wallet signature failed:', signError);
+
+                if (signError.code === 4001 || signError.message?.includes('User rejected')) {
+                    this.showNotification('❌ Transaction cancelled by user', 'warning');
+                } else if (signError.message?.includes('locked') || signError.message?.includes('unlock')) {
+                    this.showNotification('❌ Please unlock your wallet', 'warning');
+                } else {
+                    this.showNotification(`❌ Transaction signature failed: ${signError.message || 'Unknown error'}`, 'error');
+                }
+                return false;
+            }
+
+            // Send transaction to blockchain
+            let signature;
+            try {
+                console.log('🚀 Sending transaction to blockchain...');
+
+                if (typeof this.wallet.signAndSendTransaction === 'function') {
+                    console.log('🔄 Using signAndSendTransaction API...');
+                    const result = await this.wallet.signAndSendTransaction(transaction);
+                    signature = result.signature || result;
+                } else {
+                    console.log('🔄 Using manual send API...');
+                    signature = await connection.sendTransaction(signedTransaction);
+                }
+
+                console.log('✅ Transaction sent:', signature);
+            } catch (sendError) {
+                console.error('❌ Transaction send failed:', sendError);
+                this.showNotification(`❌ Transaction failed: ${sendError.message || 'Network error'}`, 'error');
+                return false;
+            }
+
+            // Wait for confirmation
+            try {
+                console.log('⏳ Waiting for blockchain confirmation...');
+
+                const confirmation = await Promise.race([
+                    connection.confirmTransaction(signature, 'confirmed'),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Confirmation timeout')), 30000)
+                    )
+                ]);
+
+                console.log('✅ Transaction confirmed on blockchain');
+                return true;
+
+            } catch (confirmError) {
+                console.error('❌ Transaction confirmation failed:', confirmError);
+                this.showNotification('❌ Transaction confirmation failed. Please check your wallet.', 'error');
+                return false;
+            }
+
+        } catch (error) {
+            console.error('❌ Transaction creation failed:', error);
+            this.showNotification(`❌ Transaction failed: ${error.message || 'Unknown error'}`, 'error');
+            return false;
+        }
+    }
+
+    generatePaymentId() {
+        // Generate unique payment ID for tracking
+        return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    }
+
+    async showPaymentInstructions(paymentId, solAmount) {
+        const instructionsDiv = document.createElement('div');
+        instructionsDiv.id = 'payment-instructions';
+        instructionsDiv.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                z-index: 10002;
+                max-width: 500px;
+                text-align: center;
+            ">
+                <h3 style="margin-top: 0; color: #333;">💰 Send Payment to Continue</h3>
+                <div style="margin: 1.5rem 0;">
+                    <p style="color: #666; margin-bottom: 1rem;">
+                        Send <strong>${solAmount} SOL</strong> to the address below to receive your tokens:
+                    </p>
+                    <div style="
+                        background: #f8fafc;
+                        border: 2px dashed #e2e8f0;
+                        border-radius: 8px;
+                        padding: 1rem;
+                        margin: 1rem 0;
+                        word-break: break-all;
+                        font-family: monospace;
+                        font-size: 0.875rem;
+                        color: #475569;
+                    ">
+                        ${this.presaleWallet}
+                    </div>
+                    <button id="copy-payment-address" style="
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        margin-right: 0.5rem;
+                    ">
+                        📋 Copy Address
+                    </button>
+                    <p style="color: #64748b; font-size: 0.875rem; margin-top: 1rem;">
+                        Payment ID: <strong>${paymentId}</strong>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button id="verify-payment" style="
+                        background: #10b981;
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 1.5rem;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    ">
+                        ✅ I've Sent Payment
+                    </button>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                        background: #f1f5f9;
+                        border: 1px solid #e2e8f0;
+                        color: #64748b;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10001;
+        `;
+
+        backdrop.addEventListener('click', () => {
+            instructionsDiv.remove();
+            backdrop.remove();
+        });
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(instructionsDiv);
+
+        // Add event listeners
+        const copyBtn = document.getElementById('copy-payment-address');
+        const verifyBtn = document.getElementById('verify-payment');
+
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(this.presaleWallet);
+                    this.showNotification('✅ Wallet address copied!', 'success');
+                } catch (error) {
+                    this.showNotification('❌ Could not copy address. Please copy manually.', 'error');
+                }
+            });
+        }
+
+        if (verifyBtn) {
+            verifyBtn.addEventListener('click', async () => {
+                instructionsDiv.remove();
+                backdrop.remove();
+
+                // Simulate payment verification (in production, this would check blockchain)
+                this.showNotification('🔍 Verifying payment...', 'info');
+
+                // Simulate verification delay
+                setTimeout(async () => {
+                    const verified = await this.verifyPayment(paymentId, solAmount);
+
+                    if (verified) {
+                        this.showNotification(`✅ Payment verified! ${this.getTokenAmount(solAmount).toLocaleString()} $ROT credited!`, 'success');
+                        this.creditTokens(solAmount);
+                        this.hideModal(this.purchaseModal);
+                    } else {
+                        this.showNotification('❌ Payment not found. Please ensure you sent the correct amount to the correct address.', 'error');
+                        // Show instructions again
+                        setTimeout(() => {
+                            this.showPaymentInstructions(paymentId, solAmount);
+                        }, 2000);
+                    }
+                }, 3000);
+            });
         }
     }
 
@@ -829,6 +1118,27 @@ class BrainRotPresale {
     simulatePurchaseSuccess() {
         // Always return true for demo - we'll handle "failures" by showing manual payment
         return true;
+    }
+
+    getTokenAmount(solAmount) {
+        const phase = this.phases[this.currentPhase - 1];
+        const baseTokens = Math.floor(solAmount * phase.rate);
+        const bonusTokens = Math.floor(baseTokens * (phase.bonus / 100));
+        return baseTokens + bonusTokens;
+    }
+
+    creditTokens(solAmount) {
+        const tokenAmount = this.getTokenAmount(solAmount);
+        this.userTokens += tokenAmount;
+        this.updateUserBalanceDisplay();
+        this.saveUserData();
+
+        // Update global stats
+        this.tokensSold += tokenAmount;
+        this.totalRaised += solAmount;
+        this.participants += 1;
+        this.updateStatsDisplay();
+        this.saveData();
     }
 
     updateUserBalanceAfterPurchase() {
