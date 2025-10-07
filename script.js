@@ -650,13 +650,68 @@ class BrainRotPresale {
         }
     }
 
-    isValidSolanaAddress(address) {
-        try {
-            new solanaWeb3.PublicKey(address);
-            return true;
-        } catch (error) {
-            return false;
+    isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (window.innerWidth <= 768 && window.innerHeight <= 1024);
+    }
+
+    showModal(modal) {
+        if (!modal) return;
+
+        console.log('🎭 Showing modal:', modal.id);
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+
+        // Focus trap for accessibility
+        const focusableElements = modal.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length > 0) {
+            focusableElements[0].focus();
         }
+    }
+
+    hideModal(modal) {
+        if (!modal) return;
+
+        console.log('🎭 Hiding modal:', modal.id);
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+
+        // Return focus to the element that opened the modal
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            padding: '1rem 1.5rem',
+            borderRadius: '8px',
+            color: 'white',
+            fontWeight: '600',
+            zIndex: '10000',
+            transform: 'translateX(100%)',
+            transition: 'transform 0.3s ease',
+            backgroundColor: type === 'success' ? '#4ade80' :
+                           type === 'error' ? '#ef4444' :
+                           type === 'warning' ? '#fbbf24' : '#6b7280'
+        });
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 5000);
     }
 
     onWalletConnected() {
@@ -1564,18 +1619,31 @@ class BrainRotPresale {
     }
 
     showModal(modal) {
-        console.log('Showing modal:', modal?.id);
-        if (modal) {
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
+        if (!modal) return;
+
+        console.log('🎭 Showing modal:', modal.id);
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+
+        // Focus trap for accessibility
+        const focusableElements = modal.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length > 0) {
+            focusableElements[0].focus();
         }
     }
 
     hideModal(modal) {
-        console.log('Hiding modal:', modal?.id);
-        if (modal) {
-            modal.classList.remove('show');
-            document.body.style.overflow = '';
+        if (!modal) return;
+
+        console.log('🎭 Hiding modal:', modal.id);
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+
+        // Return focus to the element that opened the modal
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
         }
     }
 
