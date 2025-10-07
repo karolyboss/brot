@@ -693,9 +693,6 @@ class BrainRotPresale {
             }
         }
 
-        // Show demo warning
-        this.showDemoWarning();
-
         this.updatePurchaseModal();
         this.showModal(this.purchaseModal);
     }
@@ -1602,41 +1599,6 @@ class BrainRotPresale {
 
         document.body.appendChild(backdrop);
         document.body.appendChild(helpDiv);
-    }
-
-    showDemoWarning() {
-        const warningDiv = document.createElement('div');
-        warningDiv.id = 'demo-warning';
-        warningDiv.innerHTML = `
-            <div style="
-                background: #fef3c7;
-                border: 1px solid #f59e0b;
-                border-radius: 8px;
-                padding: 1rem;
-                margin-bottom: 1rem;
-                color: #92400e;
-                font-size: 0.875rem;
-            ">
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                    <span style="margin-right: 0.5rem;">⚠️</span>
-                    <strong>Demo Mode</strong>
-                </div>
-                <p style="margin: 0; line-height: 1.4;">
-                    This is a demonstration dApp. Security warnings may appear because this dApp doesn't have production verification.
-                    In a real dApp, you would need proper domain verification and metadata to avoid these warnings.
-                </p>
-            </div>
-        `;
-
-        // Add to purchase modal if it exists
-        const purchaseModal = document.getElementById('purchase-modal');
-        if (purchaseModal) {
-            const existingWarning = purchaseModal.querySelector('#demo-warning');
-            if (!existingWarning) {
-                const modalBody = purchaseModal.querySelector('.modal-body') || purchaseModal.querySelector('.modal-content') || purchaseModal;
-                modalBody.insertBefore(warningDiv, modalBody.firstChild);
-            }
-        }
     }
 
     showConnectionInstructions() {
