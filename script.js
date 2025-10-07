@@ -42,6 +42,9 @@ class BrainRotPresale {
         this.startPhaseTimer();
         this.loadData();
 
+        // Show wallet required message initially
+        this.showWalletRequiredMessage();
+
         // Try wallet detection after a delay
         setTimeout(() => {
             console.log('🔍 Attempting wallet detection...');
@@ -434,9 +437,13 @@ class BrainRotPresale {
         window.location.href = deepLink;
     }
 
-    isMobileDevice() {
-        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-        return /android|iphone|ipad|ipod/i.test(userAgent);
+    isValidSolanaAddress(address) {
+        try {
+            new solanaWeb3.PublicKey(address);
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     onWalletConnected() {
@@ -475,11 +482,11 @@ class BrainRotPresale {
                 this.userBalanceNav.style.display = 'inline';
             }
 
-            // Update user balance display
-            this.updateUserBalanceDisplay();
-
-            // Load user's existing token balance
+            // Load user's existing token balance FIRST
             this.loadUserData();
+
+            // Update user balance display AFTER loading data
+            this.updateUserBalanceDisplay();
 
             // Check admin access
             this.checkAdminAccess();
@@ -601,6 +608,12 @@ class BrainRotPresale {
             return;
         }
 
+        // Validate Solana address
+        if (!this.isValidSolanaAddress(userAddress)) {
+            this.showNotification('❌ Invalid Solana address format', 'error');
+            return;
+        }
+
         if (tokenAmount > 20000000) {
             this.showNotification('Maximum 20M tokens per transaction', 'warning');
             return;
@@ -613,8 +626,13 @@ class BrainRotPresale {
 
         try {
             if (action === 'send') {
-                await this.simulateTokenSend(userAddress, tokenAmount);
-                this.showNotification(`Sent ${tokenAmount.toLocaleString()} $ROT to ${userAddress.slice(0, 6)}...`, 'success');
+                const success = await this.sendTokensToUser(userAddress, tokenAmount);
+                if (success) {
+                    this.showNotification(`✅ Successfully sent ${tokenAmount.toLocaleString()} $ROT to ${userAddress.slice(0, 6)}...`, 'success');
+                } else {
+                    this.showNotification('❌ Failed to send tokens. Please try again.', 'error');
+                    return;
+                }
             } else {
                 await this.simulateTokenWithdraw(userAddress, tokenAmount);
                 this.showNotification(`Withdrew ${tokenAmount.toLocaleString()} $ROT from ${userAddress.slice(0, 6)}...`, 'success');
@@ -632,9 +650,48 @@ class BrainRotPresale {
         }
     }
 
-    async simulateTokenSend(userAddress, amount) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log(`Simulated send of ${amount} $ROT to ${userAddress}`);
+    async sendTokensToUser(userAddress, amount) {
+        try {
+            console.log(`🔄 Sending ${amount} $ROT to ${userAddress}...`);
+
+            // Validate the target address
+            if (!this.isValidSolanaAddress(userAddress)) {
+                this.showNotification('❌ Invalid Solana address format', 'error');
+                return false;
+            }
+
+            // Check if user already has a balance record
+            const existingData = localStorage.getItem(`brainrot_user_${userAddress}`);
+            let currentTokens = 0;
+
+            if (existingData) {
+                const userData = JSON.parse(existingData);
+                currentTokens = userData.tokens || 0;
+            }
+
+            // Add the new tokens
+            const newTotal = currentTokens + amount;
+
+            // Save the updated balance
+            const userData = {
+                tokens: newTotal,
+                wallet: userAddress,
+                lastUpdated: Date.now()
+            };
+
+            localStorage.setItem(`brainrot_user_${userAddress}`, JSON.stringify(userData));
+
+            console.log(`✅ Successfully sent ${amount} $ROT to ${userAddress}. New balance: ${newTotal.toLocaleString()}`);
+
+            // Show notification to admin that tokens were sent
+            this.showNotification(`🎁 ${amount.toLocaleString()} $ROT sent to ${userAddress.slice(0, 8)}... - they can now log in to see their balance!`, 'success');
+
+            return true;
+
+        } catch (error) {
+            console.error('❌ Failed to send tokens:', error);
+            return false;
+        }
     }
 
     async simulateTokenWithdraw(userAddress, amount) {
@@ -1230,14 +1287,49 @@ class BrainRotPresale {
     updateUserBalanceDisplay() {
         console.log('Updating balance display:', this.userTokens);
 
+        // Only show balance if user is connected to a wallet
+        if (!this.publicKey) {
+            console.log('❌ No wallet connected - hiding balance');
+            this.hideUserBalance();
+            return;
+        }
+
         const balanceText = `${this.userTokens.toLocaleString()} $ROT`;
 
         if (this.userBalance) {
             this.userBalance.textContent = balanceText;
+            this.userBalance.style.display = 'inline';
         }
 
         if (this.userBalanceNav) {
             this.userBalanceNav.textContent = balanceText;
+            this.userBalanceNav.style.display = 'inline';
+        }
+
+        console.log('✅ Balance displayed for connected wallet');
+    }
+
+    hideUserBalance() {
+        if (this.userBalance) {
+            this.userBalance.style.display = 'none';
+        }
+
+        if (this.userBalanceNav) {
+            this.userBalanceNav.style.display = 'none';
+        }
+    }
+
+    showWalletRequiredMessage() {
+        if (this.userBalance) {
+            this.userBalance.textContent = 'Connect wallet to view balance';
+            this.userBalance.style.display = 'inline';
+            this.userBalance.style.color = 'var(--secondary-text)';
+            this.userBalance.style.fontSize = '0.875rem';
+        }
+
+        if (this.userBalanceNav) {
+            this.userBalanceNav.textContent = '0 $ROT';
+            this.userBalanceNav.style.display = 'inline';
         }
     }
 
