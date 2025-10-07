@@ -296,19 +296,32 @@ class BrainRotPresale {
         });
     }
 
-    toggleMobileMenu() {
-        if (!this.mobileMenuToggle || !this.navLinks) return;
+    showModal(modal) {
+        if (!modal) return;
 
-        this.mobileMenuToggle.classList.toggle('active');
-        this.navLinks.classList.toggle('active');
+        console.log('🎭 Showing modal:', modal.id);
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
 
-        // Also toggle mobile connect wallet button visibility
-        if (this.mobileConnectWalletBtn) {
-            if (this.navLinks.classList.contains('active')) {
-                this.mobileConnectWalletBtn.style.display = 'block';
-            } else {
-                this.mobileConnectWalletBtn.style.display = 'none';
-            }
+        // Focus trap for accessibility
+        const focusableElements = modal.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length > 0) {
+            focusableElements[0].focus();
+        }
+    }
+
+    hideModal(modal) {
+        if (!modal) return;
+
+        console.log('🎭 Hiding modal:', modal.id);
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+
+        // Return focus to the element that opened the modal
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
         }
     }
 
@@ -452,6 +465,9 @@ class BrainRotPresale {
 
         this.publicKey = response.publicKey;
         this.wallet = window.solana;
+
+        console.log('✅ Wallet connected successfully:', this.publicKey.toString());
+        this.onWalletConnected();
 
     async connectWithSolflare() {
         let response;
