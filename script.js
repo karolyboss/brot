@@ -60,6 +60,7 @@ class BrainRotPresale {
         this.setupFaqAccordion();
         this.startPhaseTimer();
         this.loadData();
+        this.checkForWalletConnection();
 
         // Show wallet required message initially
         this.showWalletRequiredMessage();
@@ -110,8 +111,17 @@ class BrainRotPresale {
         if (this.manualPaymentAddress) {
             this.manualPaymentAddress.dataset.address = this.presaleWallet;
             this.manualPaymentAddress.textContent = this.presaleWallet;
-        }
+        // Mobile connect wallet button
         this.mobileConnectBtn = document.getElementById('mobile-connect-phantom');
+
+        if (this.mobileConnectBtn) {
+            console.log('✅ Mobile connect button found, adding listener');
+            this.mobileConnectBtn.addEventListener('click', (e) => {
+                console.log('📱 Mobile connect button clicked');
+                e.preventDefault();
+                this.connectWallet();
+            });
+        }
 
         // Airdrop elements
         this.claimAirdropBtn = document.getElementById('claim-airdrop-btn');
@@ -352,6 +362,15 @@ class BrainRotPresale {
 
         console.log('Available wallets:', wallets);
 
+        // Check if Phantom is already connected
+        if (window.solana && window.solana.isPhantom && window.solana.publicKey) {
+            console.log('✅ Phantom wallet already connected!');
+            this.publicKey = window.solana.publicKey;
+            this.wallet = window.solana;
+            this.onWalletConnected();
+            return;
+        }
+
         if (wallets.phantom) {
             console.log('✅ Phantom wallet detected!');
             this.showNotification('✅ Phantom wallet detected! Click "Connect Wallet" to continue.', 'success');
@@ -369,7 +388,6 @@ class BrainRotPresale {
 
             if (this.isMobileDevice()) {
                 this.showNotification('📱 No wallet detected. Click "Connect Wallet" to open Phantom app.', 'info');
-                this.prepareMobileWalletAdapter();
 
                 // Show mobile connect wallet button if no wallet detected
                 if (this.mobileConnectWalletBtn && !this.publicKey) {
@@ -433,12 +451,18 @@ class BrainRotPresale {
     }
 
     async connectMobileWallet() {
-        // For mobile, try to open Phantom app directly
-        const appUrl = encodeURIComponent(window.location.href);
+        // For mobile, try to open Phantom app directly with proper return handling
+        const currentUrl = window.location.href;
+        const appUrl = encodeURIComponent(currentUrl);
         const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
 
-        console.log('📱 Redirecting to Phantom app...');
-        this.showNotification('🔗 Opening Phantom app...', 'info');
+        console.log('📱 Opening Phantom app with deep link...');
+
+        // Store connection attempt for when user returns
+        sessionStorage.setItem('phantom_connection_attempt', 'true');
+        sessionStorage.setItem('phantom_return_url', currentUrl);
+
+        this.showNotification('🔗 Opening Phantom app... Please connect and return to continue.', 'info');
 
         // Try to open the app
         if (this.isMobileDevice()) {
@@ -449,14 +473,42 @@ class BrainRotPresale {
     }
 
     promptPhantomDeepLink() {
-        const appUrl = encodeURIComponent(window.location.href);
+        const currentUrl = window.location.href;
+        const appUrl = encodeURIComponent(currentUrl);
         const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+
+        sessionStorage.setItem('phantom_connection_attempt', 'true');
+        sessionStorage.setItem('phantom_return_url', currentUrl);
         window.location.href = deepLink;
     }
 
-    isMobileDevice() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               (window.innerWidth <= 768 && window.innerHeight <= 1024);
+    checkForWalletConnection() {
+        // Check if user is returning from Phantom connection attempt
+        const connectionAttempt = sessionStorage.getItem('phantom_connection_attempt');
+        const returnUrl = sessionStorage.getItem('phantom_return_url');
+
+        if (connectionAttempt && returnUrl && window.location.href === returnUrl) {
+            console.log('🔍 User returned from Phantom, checking wallet connection...');
+
+            // Clear the connection attempt flag
+            sessionStorage.removeItem('phantom_connection_attempt');
+            sessionStorage.removeItem('phantom_return_url');
+
+            // Try to detect wallet connection
+            setTimeout(() => {
+                this.attemptWalletDetection();
+            }, 1000);
+        }
+
+        // Also check for wallet connection on page visibility change (when returning from app)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !this.publicKey) {
+                console.log('📱 Page became visible, checking for wallet connection...');
+                setTimeout(() => {
+                    this.attemptWalletDetection();
+                }, 500);
+            }
+        });
     }
 
     showModal(modal) {
