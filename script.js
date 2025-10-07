@@ -1128,28 +1128,21 @@ class BrainRotPresale {
     }
 
     isMobileDevice() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               (window.innerWidth <= 768 && window.innerHeight <= 1024);
+        // More comprehensive mobile detection
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        const isMobileScreen = window.innerWidth <= 768 && window.innerHeight <= 1024;
+
+        // Also check for touch capability as additional indicator
+        const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        return isMobileUA || (isMobileScreen && hasTouchScreen);
     }
 
     toggleMobileMenu() {
         if (this.mobileMenuToggle && this.navLinks) {
             this.mobileMenuToggle.classList.toggle('active');
             this.navLinks.classList.toggle('active');
-        }
-    }
-
-    debugWalletDetection() {
-        console.log('🔍 Wallet Detection Debug:');
-        console.log('window.solana exists:', typeof window.solana !== 'undefined');
-        console.log('window.solana.isPhantom:', window.solana?.isPhantom);
-        console.log('window.solflare exists:', typeof window.solflare !== 'undefined');
-        console.log('window.solanaWeb3 exists:', typeof window.solanaWeb3 !== 'undefined');
-
-        if (typeof window.solanaWeb3 === 'undefined') {
-            console.error('❌ Solana web3 library not loaded!');
-        } else {
-            console.log('✅ Solana web3 library loaded');
         }
     }
 
@@ -1407,12 +1400,14 @@ class BrainRotPresale {
     }
 
     async connectMobileWallet() {
-        // For mobile, try to open Phantom app directly with proper return handling
+        // For mobile, use the correct Phantom app URL scheme
         const currentUrl = window.location.href;
         const appUrl = encodeURIComponent(currentUrl);
-        const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
 
-        console.log('📱 Opening Phantom app with deep link:', deepLink);
+        // Use the correct Phantom mobile app URL scheme
+        const phantomAppUrl = `phantom://app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+
+        console.log('📱 Opening Phantom app with mobile URL scheme:', phantomAppUrl);
 
         // Store connection attempt for when user returns
         sessionStorage.setItem('phantom_connection_attempt', 'true');
@@ -1420,26 +1415,31 @@ class BrainRotPresale {
 
         this.showNotification('🔗 Opening Phantom app... Please connect and return to continue.', 'info');
 
-        // Try to open the app
+        // Try to open the Phantom app directly using the mobile URL scheme
         if (this.isMobileDevice()) {
-            // Use a more reliable method for mobile deep linking
             try {
-                // Try to open the app directly
-                window.location.href = deepLink;
+                // Use the mobile app URL scheme first
+                window.location.href = phantomAppUrl;
 
-                // Set up a fallback in case the deep link doesn't work
+                // Set up a fallback in case the mobile URL scheme doesn't work
                 setTimeout(() => {
                     if (!this.publicKey) {
-                        console.log('🔄 Deep link may have failed, trying alternative method...');
-                        this.tryAlternativeMobileConnection();
+                        console.log('🔄 Mobile URL scheme may have failed, trying web fallback...');
+                        // Try the web URL as fallback (this might open in browser)
+                        const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+                        window.location.href = webUrl;
                     }
-                }, 5000);
+                }, 3000);
             } catch (error) {
-                console.error('❌ Deep link failed:', error);
-                this.tryAlternativeMobileConnection();
+                console.error('❌ Mobile URL scheme failed:', error);
+                // Fallback to web URL
+                const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+                window.location.href = webUrl;
             }
         } else {
-            window.open(deepLink, '_blank');
+            // For desktop, open in new tab
+            const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+            window.open(webUrl, '_blank');
         }
 
         // Set a timeout to show manual connection option if user returns without connecting
@@ -1449,30 +1449,6 @@ class BrainRotPresale {
                 this.showManualConnectionOption();
             }
         }, 15000); // 15 seconds timeout
-    }
-
-    tryAlternativeMobileConnection() {
-        console.log('🔄 Trying alternative mobile connection method...');
-
-        // Try to use the Phantom app URL scheme directly
-        const alternativeDeepLink = 'phantom://wallet/connect';
-
-        try {
-            window.location.href = alternativeDeepLink;
-
-            // If that doesn't work, show manual connection option immediately
-            setTimeout(() => {
-                if (!this.publicKey) {
-                    console.log('❌ Alternative method failed, showing manual option');
-                    this.showNotification('Please open Phantom app manually and connect to this website.', 'info');
-                    this.showManualConnectionOption();
-                }
-            }, 3000);
-        } catch (error) {
-            console.error('❌ Alternative method also failed:', error);
-            this.showNotification('Please open Phantom app manually and connect to this website.', 'info');
-            this.showManualConnectionOption();
-        }
     }
 
     showManualConnectionOption() {
@@ -1599,11 +1575,29 @@ class BrainRotPresale {
     promptPhantomDeepLink() {
         const currentUrl = window.location.href;
         const appUrl = encodeURIComponent(currentUrl);
-        const deepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+
+        // Use the correct Phantom mobile app URL scheme
+        const phantomAppUrl = `phantom://app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+
+        console.log('📱 Using Phantom mobile URL scheme:', phantomAppUrl);
 
         sessionStorage.setItem('phantom_connection_attempt', 'true');
         sessionStorage.setItem('phantom_return_url', currentUrl);
-        window.location.href = deepLink;
+
+        // For mobile, try the app URL scheme first
+        if (this.isMobileDevice()) {
+            try {
+                window.location.href = phantomAppUrl;
+            } catch (error) {
+                console.error('❌ Mobile URL scheme failed, trying web fallback');
+                const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+                window.location.href = webUrl;
+            }
+        } else {
+            // For desktop, use web URL
+            const webUrl = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${appUrl}`;
+            window.location.href = webUrl;
+        }
     }
 
     checkForWalletConnection() {
