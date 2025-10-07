@@ -50,6 +50,11 @@ class BrainRotPresale {
             this.mobileConnectWalletBtn.style.display = 'block';
         }
 
+        // Show hero connect wallet button if no wallet connected
+        if (!this.publicKey && this.heroConnectWalletBtn) {
+            this.heroConnectWalletBtn.style.display = 'block';
+        }
+
         // Try wallet detection after a delay
         setTimeout(() => {
             console.log('🔍 Attempting wallet detection...');
@@ -210,12 +215,12 @@ class BrainRotPresale {
             applyReferralBtn.addEventListener('click', () => this.applyReferral());
         }
 
-        // Mobile connect wallet button
-        this.mobileConnectWalletBtn = document.getElementById('mobile-connect-wallet');
+        // Hero connect wallet button
+        this.heroConnectWalletBtn = document.getElementById('hero-connect-wallet');
 
-        if (this.mobileConnectWalletBtn) {
-            this.mobileConnectWalletBtn.addEventListener('click', (e) => {
-                console.log('Mobile connect wallet button clicked');
+        if (this.heroConnectWalletBtn) {
+            this.heroConnectWalletBtn.addEventListener('click', (e) => {
+                console.log('🎯 Hero connect wallet button clicked');
                 e.preventDefault();
                 this.showModal(this.walletModal);
             });
@@ -330,6 +335,11 @@ class BrainRotPresale {
                 // Show mobile connect wallet button if no wallet detected
                 if (this.mobileConnectWalletBtn && !this.publicKey) {
                     this.mobileConnectWalletBtn.style.display = 'block';
+                }
+
+                // Show hero connect wallet button if no wallet detected
+                if (this.heroConnectWalletBtn && !this.publicKey) {
+                    this.heroConnectWalletBtn.style.display = 'block';
                 }
             } else {
                 this.showNotification('❌ Please install Phantom wallet (desktop extension) to continue', 'warning');
@@ -482,6 +492,13 @@ class BrainRotPresale {
                 this.connectBtn.classList.add('connected');
             }
 
+            // Update hero connect wallet button
+            if (this.heroConnectWalletBtn) {
+                const address = this.publicKey.toString();
+                this.heroConnectWalletBtn.textContent = `${address.slice(0, 4)}...${address.slice(-4)}`;
+                this.heroConnectWalletBtn.classList.add('connected');
+            }
+
             // Enable buy button
             if (this.buyBtn) {
                 this.buyBtn.disabled = false;
@@ -505,6 +522,11 @@ class BrainRotPresale {
             // Hide mobile connect wallet button
             if (this.mobileConnectWalletBtn) {
                 this.mobileConnectWalletBtn.style.display = 'none';
+            }
+
+            // Hide hero connect wallet button
+            if (this.heroConnectWalletBtn) {
+                this.heroConnectWalletBtn.style.display = 'none';
             }
 
             // Show nav balance
