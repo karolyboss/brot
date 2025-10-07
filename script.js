@@ -80,6 +80,11 @@ class BrainRotPresale {
             console.log('🔍 Attempting wallet detection...');
             this.attemptWalletDetection();
         }, 1000);
+
+        // Check for return from Phantom app after initialization
+        setTimeout(() => {
+            this.checkForWalletConnection();
+        }, 2000);
     }
 
     setupElements() {
@@ -1160,15 +1165,43 @@ class BrainRotPresale {
 
         console.log('Available wallets:', wallets);
 
-        // Check if Phantom is already connected
-        if (window.solana && window.solana.isPhantom && window.solana.publicKey) {
-            console.log('✅ Phantom wallet already connected!');
-            this.publicKey = window.solana.publicKey;
-            this.wallet = window.solana;
-            this.onWalletConnected();
-            return;
+        // Check if Phantom is already connected - try multiple ways
+        if (window.solana && window.solana.isPhantom) {
+            console.log('✅ Phantom wallet detected, checking connection status...');
+
+            // Try to get the public key in multiple ways
+            let publicKey = null;
+
+            try {
+                // Method 1: Check if already connected
+                if (window.solana.publicKey) {
+                    publicKey = window.solana.publicKey;
+                    console.log('✅ Found existing publicKey:', publicKey.toString());
+                }
+                // Method 2: Try to connect if not already connected
+                else if (window.solana.connect) {
+                    console.log('🔄 Attempting to detect Phantom connection...');
+                    const response = await window.solana.connect();
+                    if (response && response.publicKey) {
+                        publicKey = response.publicKey;
+                        console.log('✅ Connected to Phantom:', publicKey.toString());
+                    }
+                }
+            } catch (connectError) {
+                console.log('❌ Connection attempt failed:', connectError.message);
+                // This is expected if user cancelled or wallet is locked
+            }
+
+            if (publicKey) {
+                this.publicKey = publicKey;
+                this.wallet = window.solana;
+                console.log('🎉 Wallet connected successfully!');
+                this.onWalletConnected();
+                return;
+            }
         }
 
+        // Fallback wallet detection
         if (wallets.phantom) {
             console.log('✅ Phantom wallet detected!');
             this.showNotification('✅ Phantom wallet detected! Click "Connect Wallet" to continue.', 'success');
@@ -1268,6 +1301,50 @@ class BrainRotPresale {
         } else {
             window.open(deepLink, '_blank');
         }
+
+        // Set a timeout to show manual connection option if user returns without connecting
+        setTimeout(() => {
+            if (!this.publicKey) {
+                console.log('⏰ Connection timeout - showing manual connection option');
+                this.showManualConnectionOption();
+            }
+        }, 15000); // 15 seconds timeout
+    }
+
+    showManualConnectionOption() {
+        // Create a manual connection button that appears if automatic detection fails
+        const manualBtn = document.createElement('button');
+        manualBtn.id = 'manual-wallet-connect';
+        manualBtn.innerHTML = '🔗 Connect Wallet Manually';
+        manualBtn.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 10001;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        `;
+
+        document.body.appendChild(manualBtn);
+
+        manualBtn.addEventListener('click', () => {
+            console.log('🔗 Manual connection clicked');
+            manualBtn.remove();
+            this.connectDesktopWallet(); // Try desktop connection method
+        });
+
+        // Auto-remove after 30 seconds
+        setTimeout(() => {
+            if (manualBtn.parentNode) {
+                manualBtn.remove();
+            }
+        }, 30000);
     }
 
     promptPhantomDeepLink() {
@@ -1292,10 +1369,8 @@ class BrainRotPresale {
             sessionStorage.removeItem('phantom_connection_attempt');
             sessionStorage.removeItem('phantom_return_url');
 
-            // Try to detect wallet connection
-            setTimeout(() => {
-                this.attemptWalletDetection();
-            }, 1000);
+            // Try to detect wallet connection multiple times with delays
+            this.attemptWalletDetectionWithRetry();
         }
 
         // Also check for wallet connection on page visibility change (when returning from app)
@@ -1303,13 +1378,50 @@ class BrainRotPresale {
             if (!document.hidden && !this.publicKey) {
                 console.log('📱 Page became visible, checking for wallet connection...');
                 setTimeout(() => {
-                    this.attemptWalletDetection();
+                    this.attemptWalletDetectionWithRetry();
                 }, 500);
             }
         });
 
         // Add a retry button for manual connection after returning from Phantom
         this.addRetryConnectionButton();
+    }
+
+    async attemptWalletDetectionWithRetry() {
+        console.log('🔄 Starting wallet detection with retry logic...');
+
+        // Try multiple times with increasing delays
+        for (let attempt = 1; attempt <= 5; attempt++) {
+            console.log(`🔍 Wallet detection attempt ${attempt}/5`);
+
+            try {
+                await this.attemptWalletDetection();
+
+                // If we successfully connected, break out of the loop
+                if (this.publicKey && this.wallet) {
+                    console.log('✅ Wallet connection established!');
+                    return;
+                }
+            } catch (error) {
+                console.log(`❌ Detection attempt ${attempt} failed:`, error.message);
+            }
+
+            // Wait before next attempt (increasing delay)
+            const delay = attempt * 1000; // 1s, 2s, 3s, 4s, 5s
+            console.log(`⏳ Waiting ${delay}ms before next attempt...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        console.log('❌ All wallet detection attempts failed');
+        this.showNotification('❌ Wallet connection not detected. Please try connecting manually.', 'warning');
+
+        // Show retry button if still not connected
+        if (!this.publicKey) {
+            const retryBtn = document.getElementById('retry-wallet-connection');
+            if (retryBtn) {
+                retryBtn.style.display = 'block';
+            }
+        }
     }
 
     addRetryConnectionButton() {
@@ -1360,6 +1472,15 @@ class BrainRotPresale {
                 setTimeout(showRetryButton, 2000);
             }
         });
+
+        // Also show manual connection button for mobile users
+        if (this.isMobileDevice()) {
+            setTimeout(() => {
+                if (!this.publicKey) {
+                    this.showManualConnectionOption();
+                }
+            }, 5000);
+        }
     }
 
     isValidSolanaAddress(address) {
