@@ -1201,6 +1201,9 @@ class BrainRotPresale {
             }
         }
 
+        // Enhanced wallet detection using the comprehensive detection method
+        const walletDetected = await this.detectAvailableWallets();
+
         // Fallback wallet detection
         if (wallets.phantom) {
             console.log('✅ Phantom wallet detected!');
@@ -1214,6 +1217,9 @@ class BrainRotPresale {
         } else if (wallets.coinbase) {
             console.log('💙 Coinbase detected');
             this.showNotification('💙 Coinbase detected! Click "Connect Wallet" to use it.', 'info');
+        } else if (walletDetected) {
+            console.log('✅ Wallet detected via comprehensive detection');
+            this.showNotification('✅ Wallet detected! Click "Connect Wallet" to continue.', 'success');
         } else {
             console.log('❌ No injected wallets detected');
 
@@ -1252,33 +1258,132 @@ class BrainRotPresale {
     }
 
     async connectDesktopWallet() {
-        if (!window.solana || !window.solana.isPhantom) {
-            this.showNotification('❌ Please install Phantom wallet', 'warning');
+        console.log('🔍 Manual wallet connection attempt...');
+
+        // First, try to detect if any Solana wallet is available
+        const walletDetected = await this.detectAvailableWallets();
+
+        if (!walletDetected) {
+            this.showNotification('❌ No Solana wallet detected. Please install Phantom wallet first.', 'warning');
             return;
         }
 
         try {
-            console.log('🔐 Connecting to Phantom wallet...');
+            console.log('🔐 Attempting to connect to detected wallet...');
+
+            // Try to connect to the detected wallet
             const response = await window.solana.connect();
 
             if (response && response.publicKey) {
                 this.publicKey = response.publicKey;
                 this.wallet = window.solana;
-                console.log('✅ Phantom wallet connected');
+                console.log('✅ Wallet connected successfully:', this.publicKey.toString());
                 this.onWalletConnected();
             } else {
-                throw new Error('Invalid wallet response');
+                throw new Error('Invalid wallet response - no public key returned');
             }
         } catch (error) {
-            console.error('❌ Phantom connection failed:', error);
+            console.error('❌ Wallet connection failed:', error);
+
             if (error.code === 4001) {
-                this.showNotification('❌ Connection cancelled', 'warning');
+                this.showNotification('❌ Connection cancelled by user', 'warning');
             } else if (error.code === -32002) {
                 this.showNotification('❌ Connection already in progress', 'warning');
+            } else if (error.message?.includes('User rejected')) {
+                this.showNotification('❌ Connection rejected. Please approve the connection in your wallet.', 'warning');
+            } else if (error.message?.includes('locked') || error.message?.includes('unlock')) {
+                this.showNotification('❌ Please unlock your wallet and try again', 'warning');
             } else {
                 this.showNotification(`❌ Connection failed: ${error.message || 'Unknown error'}`, 'error');
             }
         }
+    }
+
+    async detectAvailableWallets() {
+        console.log('🔍 Detecting available Solana wallets...');
+
+        // Method 1: Check for standard Phantom injection
+        if (window.solana && window.solana.isPhantom) {
+            console.log('✅ Phantom wallet detected via window.solana');
+            return true;
+        }
+
+        // Method 2: Check for other wallet providers
+        const walletProviders = [
+            'solana',
+            'phantom',
+            'solflare',
+            'backpack',
+            'coinbaseSolana'
+        ];
+
+        for (const provider of walletProviders) {
+            if (window[provider]) {
+                console.log(`✅ Found wallet provider: ${provider}`);
+
+                // If it's not the standard solana object, assign it
+                if (provider !== 'solana' && window[provider].isPhantom) {
+                    window.solana = window[provider];
+                    console.log('✅ Assigned wallet to window.solana');
+                    return true;
+                }
+
+                if (window[provider].publicKey || window[provider].connect) {
+                    window.solana = window[provider];
+                    console.log('✅ Assigned wallet to window.solana');
+                    return true;
+                }
+            }
+        }
+
+        // Method 3: Check for wallet extensions that might be available
+        if (typeof window.phantom !== 'undefined') {
+            console.log('✅ Phantom extension detected');
+            window.solana = window.phantom.solana;
+            return true;
+        }
+
+        // Method 4: Try to detect mobile wallet apps
+        if (this.isMobileDevice()) {
+            console.log('📱 Mobile device detected, checking for mobile wallet apps...');
+
+            // On mobile, wallets might be available through different means
+            // Try to trigger wallet selection manually
+            try {
+                if (window.solana && window.solana.connect) {
+                    console.log('✅ Mobile wallet connection method available');
+                    return true;
+                }
+            } catch (e) {
+                console.log('❌ Mobile wallet detection failed:', e.message);
+            }
+
+            // Try alternative mobile wallet detection methods
+            const mobileWallets = [
+                'phantom',
+                'solflare',
+                'backpack'
+            ];
+
+            for (const wallet of mobileWallets) {
+                if (window[wallet] && (window[wallet].solana || window[wallet].connect)) {
+                    console.log(`✅ Mobile wallet detected: ${wallet}`);
+                    window.solana = window[wallet].solana || window[wallet];
+                    return true;
+                }
+            }
+
+            // Check if we're in a mobile browser that might have wallet support
+            if (navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Safari')) {
+                console.log('✅ Mobile browser detected - wallet may be available');
+                // On mobile browsers, wallets are typically available through the main solana object
+                // We'll return true here and let the connection attempt handle the actual connection
+                return true;
+            }
+        }
+
+        console.log('❌ No Solana wallets detected');
+        return false;
     }
 
     async connectMobileWallet() {
@@ -1333,10 +1438,24 @@ class BrainRotPresale {
 
         document.body.appendChild(manualBtn);
 
-        manualBtn.addEventListener('click', () => {
+        manualBtn.addEventListener('click', async () => {
             console.log('🔗 Manual connection clicked');
             manualBtn.remove();
-            this.connectDesktopWallet(); // Try desktop connection method
+
+            // Try comprehensive wallet detection
+            const detected = await this.detectAvailableWallets();
+
+            if (detected) {
+                this.showNotification('✅ Wallet detected! Attempting connection...', 'success');
+                await this.connectDesktopWallet();
+            } else {
+                this.showNotification('❌ No wallet detected. Please ensure Phantom is installed and try again.', 'warning');
+
+                // Show installation help
+                setTimeout(() => {
+                    this.showWalletInstallationHelp();
+                }, 2000);
+            }
         });
 
         // Auto-remove after 30 seconds
@@ -1345,6 +1464,77 @@ class BrainRotPresale {
                 manualBtn.remove();
             }
         }, 30000);
+    }
+
+    showWalletInstallationHelp() {
+        const helpDiv = document.createElement('div');
+        helpDiv.id = 'wallet-help';
+        helpDiv.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                z-index: 10002;
+                max-width: 400px;
+                text-align: center;
+            ">
+                <h3 style="margin-top: 0; color: #333;">Install Phantom Wallet</h3>
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    To connect your wallet, please install the Phantom wallet app:
+                </p>
+                <div style="margin-bottom: 1.5rem;">
+                    <a href="https://phantom.app/download"
+                       style="
+                           display: inline-block;
+                           background: #ab9ff2;
+                           color: white;
+                           padding: 0.75rem 1.5rem;
+                           border-radius: 8px;
+                           text-decoration: none;
+                           font-weight: 600;
+                       "
+                       target="_blank">
+                        📱 Download Phantom
+                    </a>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()"
+                        style="
+                            background: #f1f5f9;
+                            border: 1px solid #e2e8f0;
+                            color: #64748b;
+                            padding: 0.5rem 1rem;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">
+                    Close
+                </button>
+            </div>
+        `;
+
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10001;
+        `;
+
+        backdrop.addEventListener('click', () => {
+            helpDiv.remove();
+            backdrop.remove();
+        });
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(helpDiv);
     }
 
     promptPhantomDeepLink() {
