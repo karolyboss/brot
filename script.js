@@ -509,13 +509,59 @@ class BrainRotPresale {
                 }, 500);
             }
         });
+
+        // Add a retry button for manual connection after returning from Phantom
+        this.addRetryConnectionButton();
     }
 
-    showModal(modal) {
-        if (!modal) return;
-        console.log('🎭 Showing modal:', modal.id);
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
+    addRetryConnectionButton() {
+        // Add a manual retry button that appears after returning from Phantom
+        const retryBtn = document.createElement('button');
+        retryBtn.id = 'retry-wallet-connection';
+        retryBtn.innerHTML = '🔄 Retry Wallet Connection';
+        retryBtn.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 10001;
+            display: none;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        `;
+
+        document.body.appendChild(retryBtn);
+
+        retryBtn.addEventListener('click', () => {
+            console.log('🔄 Manual retry connection clicked');
+            retryBtn.style.display = 'none';
+            this.connectWallet();
+        });
+
+        // Show retry button when user returns from Phantom without connection
+        const showRetryButton = () => {
+            if (!this.publicKey && !document.getElementById('wallet-modal').classList.contains('show')) {
+                retryBtn.style.display = 'block';
+                setTimeout(() => {
+                    if (!this.publicKey) {
+                        retryBtn.style.display = 'none';
+                    }
+                }, 10000); // Hide after 10 seconds
+            }
+        };
+
+        // Show retry button after page visibility change if no wallet connected
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                setTimeout(showRetryButton, 2000);
+            }
+        });
     }
 
     hideModal(modal) {
